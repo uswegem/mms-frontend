@@ -41,9 +41,12 @@ jobs:
             echo "pm2_app=mms-frontend-uat" >> $GITHUB_OUTPUT
             echo "port=4001" >> $GITHUB_OUTPUT
           fi
-
       - name: Build
         run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
 
       - name: Copy build to Hetzner
         uses: appleboy/scp-action@v0.1.7
