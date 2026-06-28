@@ -52,7 +52,9 @@ export function MerchantEditForm({
         tradingName: values.tradingName,
         mcc: values.mcc,
         taxId: values.taxId || undefined,
-        city: values.city,
+        region: values.region,
+        district: values.district,
+        ward: values.ward,
         postalCode: values.postalCode,
         addressLine1: values.addressLine1 || undefined,
         addressLine2: values.addressLine2 || undefined,
@@ -72,6 +74,8 @@ export function MerchantEditForm({
   const nonEditable = ['PENDING_REVIEW', 'PENDING_APPROVAL', 'CLOSED'].includes(
     merchant.status,
   );
+
+  const profile = merchant.profile;
 
   return (
     <Card>
@@ -118,12 +122,15 @@ export function MerchantEditForm({
               ['Trading Name', merchant.tradingName],
               ['MCC', merchant.mcc],
               ['Tax ID', merchant.taxId ?? '—'],
-              ['Address', merchant.profile?.addressLine1 ?? '—'],
-              ['City', merchant.profile?.city ?? '—'],
-              ['Postal Code', merchant.profile?.postalCode ?? '—'],
-              ['Country', merchant.profile?.countryCode ?? 'TZ'],
-              ['Contact Phone', merchant.profile?.contactPhone ?? '—'],
-              ['Contact Email', merchant.profile?.contactEmail ?? '—'],
+              ['Region', profile?.region ?? '—'],
+              ['District', profile?.district ?? '—'],
+              ['Ward', profile?.ward ?? '—'],
+              ['Address', profile?.addressLine1 ?? '—'],
+              ['City', profile?.city ?? '—'],
+              ['Postal Code', profile?.postalCode ?? '—'],
+              ['Country', profile?.countryCode ?? 'TZ'],
+              ['Contact Phone', profile?.contactPhone ?? '—'],
+              ['Contact Email', profile?.contactEmail ?? '—'],
               ['School Merchant', merchant.isSchool ? 'Yes' : 'No'],
             ].map(([label, value]) => (
               <div key={label}>

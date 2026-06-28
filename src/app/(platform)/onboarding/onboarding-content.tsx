@@ -24,6 +24,7 @@ import {
 import { createOnboardingApplication, listOnboardingApplications } from '@/lib/onboarding-api';
 import { createSchoolOnboarding } from '@/lib/schools-api';
 import { formatDate } from '@/lib/format';
+import { useTanzaniaLocations } from '@/hooks/use-tanzania-locations';
 
 const STATUSES = ['', 'DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED'];
 
@@ -41,14 +42,34 @@ export function OnboardingPageContent() {
     legalName: '',
     tradingName: '',
     mcc: '5814',
-    city: 'Dar es Salaam',
-    postalCode: '11000',
+    region: '',
+    district: '',
+    ward: '',
+    postalCode: '',
     taxId: '',
     companyRegistrationNo: '',
     headName: '',
     contactPhone: '',
     contactEmail: '',
   });
+
+  const { regions, districts, wards, getPostcode } = useTanzaniaLocations(
+    form.region || undefined,
+    form.district || undefined,
+  );
+
+  function handleRegionChange(region: string) {
+    setForm((f) => ({ ...f, region, district: '', ward: '' }));
+  }
+
+  function handleDistrictChange(district: string) {
+    setForm((f) => ({ ...f, district, ward: '' }));
+  }
+
+  function handleWardChange(ward: string) {
+    const postcode = ward ? getPostcode(ward) : '';
+    setForm((f) => ({ ...f, ward, ...(postcode ? { postalCode: postcode } : {}) }));
+  }
 
   const canRead = user?.permissions?.includes('onboarding:read');
   const canWrite = user?.permissions?.includes('onboarding:write');
@@ -75,7 +96,9 @@ export function OnboardingPageContent() {
         await createSchoolOnboarding(accessToken!, {
           legalName: form.legalName,
           tradingName: form.tradingName,
-          city: form.city,
+          region: form.region || undefined,
+          district: form.district || undefined,
+          ward: form.ward || undefined,
           postalCode: form.postalCode,
           taxId: form.taxId || undefined,
           headName: form.headName || undefined,
@@ -87,8 +110,10 @@ export function OnboardingPageContent() {
           legalEntityType: entityType,
           legalName: form.legalName,
           tradingName: form.tradingName,
-          mcc: entityType === 'COMPANY' ? form.mcc : form.mcc,
-          city: form.city,
+          mcc: form.mcc,
+          region: form.region || undefined,
+          district: form.district || undefined,
+          ward: form.ward || undefined,
           postalCode: form.postalCode,
           taxId: form.taxId || undefined,
           companyRegistrationNo: form.companyRegistrationNo || undefined,
@@ -176,8 +201,42 @@ export function OnboardingPageContent() {
                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label>City</Label>
-                  <Input required value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+                  <Label>Region</Label>
+                  <Select
+                    value={form.region}
+                    onChange={(e) => handleRegionChange(e.target.value)}
+                  >
+                    <option value="">Select region…</option>
+                    {regions.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>District</Label>
+                  <Select
+                    value={form.district}
+                    onChange={(e) => handleDistrictChange(e.target.value)}
+                    disabled={!form.region}
+                  >
+                    <option value="">Select district…</option>
+                    {districts.map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Ward</Label>
+                  <Select
+                    value={form.ward}
+                    onChange={(e) => handleWardChange(e.target.value)}
+                    disabled={!form.district}
+                  >
+                    <option value="">Select ward…</option>
+                    {wards.map((w) => (
+                      <option key={w} value={w}>{w}</option>
+                    ))}
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Postal Code</Label>

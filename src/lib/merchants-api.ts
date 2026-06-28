@@ -43,7 +43,10 @@ function authHeaders(token: string): HeadersInit {
 export interface MerchantProfile {
   addressLine1: string | null;
   addressLine2: string | null;
-  city: string;
+  region: string | null;
+  district: string | null;
+  ward: string | null;
+  city: string | null;
   postalCode: string;
   countryCode: string;
   contactPhone: string | null;
@@ -94,7 +97,9 @@ export interface CreateMerchantInput {
   legalName: string;
   tradingName: string;
   mcc: string;
-  city: string;
+  region?: string;
+  district?: string;
+  ward?: string;
   postalCode: string;
   taxId?: string;
   isSchool?: boolean;
@@ -107,6 +112,9 @@ export interface CreateMerchantInput {
 export interface UpdateMerchantInput {
   tradingName?: string;
   mcc?: string;
+  region?: string;
+  district?: string;
+  ward?: string;
   city?: string;
   postalCode?: string;
   taxId?: string;

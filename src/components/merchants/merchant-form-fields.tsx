@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import type { CreateMerchantInput } from '@/lib/merchants-api';
+import { useTanzaniaLocations } from '@/hooks/use-tanzania-locations';
 
 export type MerchantFormValues = CreateMerchantInput;
 
@@ -24,6 +25,23 @@ export function MerchantFormFields({
   idPrefix = 'merchant',
 }: MerchantFormFieldsProps) {
   const field = (name: string) => `${idPrefix}-${name}`;
+  const { regions, districts, wards, getPostcode } = useTanzaniaLocations(
+    values.region,
+    values.district,
+  );
+
+  function handleRegionChange(region: string) {
+    onChange({ region: region || undefined, district: undefined, ward: undefined });
+  }
+
+  function handleDistrictChange(district: string) {
+    onChange({ district: district || undefined, ward: undefined });
+  }
+
+  function handleWardChange(ward: string) {
+    const postcode = ward ? getPostcode(ward) : '';
+    onChange({ ward: ward || undefined, ...(postcode ? { postalCode: postcode } : {}) });
+  }
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -71,15 +89,46 @@ export function MerchantFormFields({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor={field('city')}>City</Label>
-        <Input
-          id={field('city')}
-          required
+        <Label htmlFor={field('region')}>Region</Label>
+        <Select
+          id={field('region')}
           disabled={disabled}
-          maxLength={15}
-          value={values.city}
-          onChange={(e) => onChange({ city: e.target.value })}
-        />
+          value={values.region ?? ''}
+          onChange={(e) => handleRegionChange(e.target.value)}
+        >
+          <option value="">Select region…</option>
+          {regions.map((r) => (
+            <option key={r} value={r}>{r}</option>
+          ))}
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={field('district')}>District</Label>
+        <Select
+          id={field('district')}
+          disabled={disabled || !values.region}
+          value={values.district ?? ''}
+          onChange={(e) => handleDistrictChange(e.target.value)}
+        >
+          <option value="">Select district…</option>
+          {districts.map((d) => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={field('ward')}>Ward</Label>
+        <Select
+          id={field('ward')}
+          disabled={disabled || !values.district}
+          value={values.ward ?? ''}
+          onChange={(e) => handleWardChange(e.target.value)}
+        >
+          <option value="">Select ward…</option>
+          {wards.map((w) => (
+            <option key={w} value={w}>{w}</option>
+          ))}
+        </Select>
       </div>
       <div className="space-y-2">
         <Label htmlFor={field('postalCode')}>Postal Code</Label>
@@ -151,8 +200,10 @@ export const defaultMerchantFormValues: MerchantFormValues = {
   legalName: '',
   tradingName: '',
   mcc: '5814',
-  city: 'Dar es Salaam',
-  postalCode: '11000',
+  region: undefined,
+  district: undefined,
+  ward: undefined,
+  postalCode: '',
   taxId: '',
   isSchool: false,
   addressLine1: '',
@@ -168,8 +219,10 @@ export function merchantToFormValues(
     legalName: merchant.legalName,
     tradingName: merchant.tradingName,
     mcc: merchant.mcc,
-    city: merchant.profile?.city ?? 'Dar es Salaam',
-    postalCode: merchant.profile?.postalCode ?? '11000',
+    region: merchant.profile?.region ?? undefined,
+    district: merchant.profile?.district ?? undefined,
+    ward: merchant.profile?.ward ?? undefined,
+    postalCode: merchant.profile?.postalCode ?? '',
     taxId: merchant.taxId ?? '',
     isSchool: merchant.isSchool,
     addressLine1: merchant.profile?.addressLine1 ?? '',

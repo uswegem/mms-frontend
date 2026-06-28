@@ -23,7 +23,10 @@ export function createSchoolOnboarding(
   body: {
     legalName: string;
     tradingName: string;
-    city: string;
+    region?: string;
+    district?: string;
+    ward?: string;
+    city?: string;
     postalCode: string;
     taxId?: string;
     registrationNo?: string;
