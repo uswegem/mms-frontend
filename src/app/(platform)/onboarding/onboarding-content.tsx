@@ -22,16 +22,34 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { createOnboardingApplication, listOnboardingApplications } from '@/lib/onboarding-api';
+import { OnboardingDashboard } from '@/components/onboarding/onboarding-dashboard';
 import { createSchoolOnboarding } from '@/lib/schools-api';
 import { formatDate } from '@/lib/format';
 import { useTanzaniaLocations } from '@/hooks/use-tanzania-locations';
 
-const STATUSES = ['', 'DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED'];
+const STATUSES = [
+  '',
+  'DRAFT',
+  'PENDING_KYC_APPROVAL',
+  'PENDING_RISK_REVIEW',
+  'PENDING_BANK_VALIDATION',
+  'PENDING_TPS_REGISTRATION',
+  'PENDING_ALIAS_QR_SETUP',
+  'SETTLEMENT_APPROVAL_PENDING',
+  'READY_FOR_ACTIVATION',
+  'ACTIVE',
+  'REJECTED',
+  'SUBMITTED',
+  'UNDER_REVIEW',
+];
 
 export function OnboardingPageContent() {
   const { accessToken, user } = useAuth();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'MERCHANT' | 'SCHOOL' | ''>('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
   const [entityType, setEntityType] = useState<'SOLE_PROPRIETOR' | 'COMPANY' | 'SCHOOL'>(
     'SOLE_PROPRIETOR',
@@ -75,8 +93,8 @@ export function OnboardingPageContent() {
   const canWrite = user?.permissions?.includes('onboarding:write');
 
   const query = useQuery({
-    queryKey: ['onboarding', statusFilter],
-    queryFn: () => listOnboardingApplications(accessToken!, 1, statusFilter || undefined),
+    queryKey: ['onboarding', statusFilter, typeFilter, search, page],
+    queryFn: () => listOnboardingApplications(accessToken!, page, statusFilter || undefined, search || undefined, 20, typeFilter || undefined),
     enabled: !!accessToken && !!canRead,
   });
 
@@ -139,10 +157,17 @@ export function OnboardingPageContent() {
         description="Sole proprietor, company, and school registration with maker-checker approval."
       >
         {canWrite && (
-          <Button onClick={() => setShowCreate((s) => !s)}>
-            <Plus className="h-4 w-4" />
-            New Application
-          </Button>
+          <>
+            <Link href="/onboarding/new">
+              <Button>
+                <Plus className="h-4 w-4" />
+                New Wizard
+              </Button>
+            </Link>
+            <Button variant="outline" onClick={() => setShowCreate((s) => !s)}>
+              Quick Create
+            </Button>
+          </>
         )}
         <Link href="/approvals">
           <Button variant="outline">Checker Inbox</Button>
@@ -151,6 +176,8 @@ export function OnboardingPageContent() {
 
       {error && <Alert variant="error" onDismiss={() => setError(null)}>{error}</Alert>}
       {success && <Alert variant="success" onDismiss={() => setSuccess(null)}>{success}</Alert>}
+
+      <OnboardingDashboard token={accessToken!} />
 
       {showCreate && canWrite && (
         <Card>
@@ -253,15 +280,38 @@ export function OnboardingPageContent() {
       )}
 
       <Card>
-        <CardHeader className="flex-row items-center justify-between">
+        <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
           <CardTitle className="text-base">Application Queue</CardTitle>
-          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-44">
-            {STATUSES.map((s) => (
-              <option key={s || 'all'} value={s}>{s || 'All Statuses'}</option>
-            ))}
-          </Select>
+          <div className="flex flex-wrap gap-2">
+            <Input
+              placeholder="Search name, PAN, email, alias…"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              className="w-56"
+            />
+            <Select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="w-48">
+              {STATUSES.map((s) => (
+                <option key={s || 'all'} value={s}>{s || 'All Statuses'}</option>
+              ))}
+            </Select>
+            <Select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value as typeof typeFilter); setPage(1); }} className="w-40">
+              <option value="">All Types</option>
+              <option value="MERCHANT">Merchant</option>
+              <option value="SCHOOL">School</option>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
+          {query.isLoading && (
+            <p className="p-6 text-sm text-muted-foreground">Loading applications…</p>
+          )}
+          {!query.isLoading && apps.length === 0 && (
+            <p className="p-6 text-sm text-muted-foreground">No onboarding applications found.</p>
+          )}
+          {query.isError && (
+            <p className="p-6 text-sm text-destructive">Failed to load applications.</p>
+          )}
+          {apps.length > 0 && (
           <Table>
             <TableHeader>
               <TableRow>
@@ -294,6 +344,17 @@ export function OnboardingPageContent() {
               ))}
             </TableBody>
           </Table>
+          )}
+          {query.data && query.data.meta.total > 20 && (
+            <div className="flex justify-end gap-2 border-t border-border p-4">
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                Previous
+              </Button>
+              <Button variant="outline" size="sm" disabled={page * 20 >= query.data.meta.total} onClick={() => setPage((p) => p + 1)}>
+                Next
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

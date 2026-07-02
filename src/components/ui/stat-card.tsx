@@ -12,11 +12,11 @@ interface StatCardProps {
 }
 
 const accentStyles = {
-  default: 'bg-[#eff6ff] text-[#1e40af]',
-  success: 'bg-[#ecfdf5] text-[#047857]',
-  warning: 'bg-[#fffbeb] text-[#b45309]',
-  danger: 'bg-[#fef2f2] text-[#b91c1c]',
-  info: 'bg-[#f0f9ff] text-[#0369a1]',
+  default: 'bg-[var(--accent-muted)] text-[var(--brand-black)]',
+  success: 'bg-[var(--success-muted)] text-[var(--success)]',
+  warning: 'bg-[var(--warning-muted)] text-[var(--warning)]',
+  danger: 'bg-[var(--destructive-muted)] text-[var(--destructive)]',
+  info: 'bg-[var(--info-muted)] text-[var(--info)]',
 };
 
 export function StatCard({

@@ -34,7 +34,7 @@ export function ChartPanel({
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{summary.label}</p>
               <p className="text-lg font-semibold tabular-nums">{summary.value}</p>
               {summary.change && (
-                <p className="text-[10px] text-[#047857]">{summary.change}</p>
+                <p className="text-[10px] text-[var(--success)]">{summary.change}</p>
               )}
             </div>
           )}

@@ -18,6 +18,8 @@ async function request<T>(path: string, token: string, init?: RequestInit): Prom
   return res.json();
 }
 
+import type { OnboardingApplication } from '@/lib/onboarding-api';
+
 export function createSchoolOnboarding(
   token: string,
   body: {
@@ -35,7 +37,7 @@ export function createSchoolOnboarding(
     contactEmail?: string;
   },
 ) {
-  return request('/schools/onboarding', token, {
+  return request<OnboardingApplication>('/schools/onboarding', token, {
     method: 'POST',
     body: JSON.stringify(body),
   });

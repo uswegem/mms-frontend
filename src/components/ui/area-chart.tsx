@@ -19,7 +19,7 @@ export function AreaChart({
   data,
   height = 200,
   className,
-  color = '#2563eb',
+  color = 'var(--brand-yellow)',
   formatValue = (v) => String(v),
 }: AreaChartProps) {
   if (data.length === 0) return null;
@@ -63,7 +63,7 @@ export function AreaChart({
             x2={width - padding.right}
             y1={padding.top + chartH * (1 - pct)}
             y2={padding.top + chartH * (1 - pct)}
-            stroke="#e2e8f0"
+            stroke="var(--border)"
             strokeWidth="0.2"
             strokeDasharray={pct === 0 || pct === 1 ? '0' : '1 2'}
           />
@@ -83,7 +83,7 @@ export function AreaChart({
             cx={p.x}
             cy={p.y}
             r={i === points.length - 1 ? 2.5 : 1.5}
-            fill={i === points.length - 1 ? color : '#fff'}
+            fill={i === points.length - 1 ? color : 'var(--brand-white)'}
             stroke={color}
             strokeWidth="0.8"
           />

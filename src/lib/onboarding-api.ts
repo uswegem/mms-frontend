@@ -6,29 +6,94 @@ export interface OnboardingApplication {
   applicationNo: string;
   legalEntityType: string;
   status: string;
+  currentStep?: string | null;
   merchantId: string;
   merchant: {
+    id: string;
+    merchantCode?: string | null;
     legalName: string;
     tradingName: string;
+    displayName?: string | null;
     status: string;
     mcc: string;
+    businessCategory?: string | null;
+    taxId?: string | null;
+    vrn?: string | null;
+    licenseNumber?: string | null;
+    contactPerson?: string | null;
+    relationshipManager?: string | null;
+    branch?: string | null;
+    sourceChannel?: string | null;
     isSchool: boolean;
     profile: {
+      addressLine1?: string | null;
+      addressLine2?: string | null;
+      region?: string | null;
+      district?: string | null;
+      ward?: string | null;
       city: string;
       postalCode: string;
       contactPhone: string | null;
       contactEmail: string | null;
     } | null;
     settlementAccount: {
+      id: string;
       accountNumber: string;
       accountName: string;
       bankCode: string;
       verifiedAt: string | null;
     } | null;
+    documents?: Array<{
+      id: string;
+      docType: string;
+      fileName: string;
+      verificationStatus: string;
+      rejectionReason?: string | null;
+      createdAt: string;
+    }>;
+    alias?: { alias8digit: string } | null;
+    stores?: Array<{
+      id: string;
+      storeName: string;
+      storeCode: string;
+      terminalId?: string | null;
+      alias?: string | null;
+      lipaNambaHandle?: string | null;
+      qrString?: string | null;
+      status: string;
+    }>;
+    settlementConfig?: {
+      settlementAlias?: string | null;
+      payoutCycle?: string | null;
+      mdr?: string | null;
+      charges?: string | null;
+      transactionLimit?: string | null;
+      dailyLimit?: string | null;
+      approvalStatus: string;
+      remarks?: string | null;
+    } | null;
+    integrations?: Array<{
+      integrationType: string;
+      externalReferenceId?: string | null;
+      status: string;
+      failureReason?: string | null;
+      retryCount: number;
+      lastTriedAt?: string | null;
+    }>;
   };
+  riskReview?: {
+    riskScore?: number | null;
+    riskLevel?: string | null;
+    duplicateFlag: boolean;
+    blacklistFlag: boolean;
+    status: string;
+    remarks?: string | null;
+  } | null;
   steps: { stepCode: string; completedAt: string | null }[];
   rejectionCode: string | null;
+  rejectionNotes?: string | null;
   createdAt: string;
+  activatedAt?: string | null;
 }
 
 async function request<T>(
@@ -47,7 +112,7 @@ async function request<T>(
   });
   if (!res.ok) {
     const problem = await res.json().catch(() => ({}));
-    throw new Error(problem.detail ?? problem.title ?? `Request failed (${res.status})`);
+    throw new Error(problem.detail ?? problem.title ?? problem.message ?? `Request failed (${res.status})`);
   }
   return res.json();
 }
@@ -57,12 +122,22 @@ export function listOnboardingApplications(
   page = 1,
   status?: string,
   q?: string,
+  limit = 20,
+  onboardingType?: 'MERCHANT' | 'SCHOOL',
 ) {
-  const params = new URLSearchParams({ page: String(page), limit: '20' });
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
   if (status) params.set('status', status);
   if (q) params.set('q', q);
-  return request<{ data: OnboardingApplication[]; meta: { total: number } }>(
+  if (onboardingType) params.set('onboardingType', onboardingType);
+  return request<{ data: OnboardingApplication[]; meta: { total: number; page: number; limit: number } }>(
     `/onboarding/applications?${params}`,
+    token,
+  );
+}
+
+export function getOnboardingDashboard(token: string) {
+  return request<{ counts: Record<string, number>; total: number }>(
+    '/onboarding/applications/dashboard/stats',
     token,
   );
 }
@@ -110,6 +185,14 @@ export function addOnboardingDocument(
   });
 }
 
+export function deleteOnboardingDocument(token: string, id: string, documentId: string) {
+  return request<OnboardingApplication>(
+    `/merchant-onboarding/${id}/kyc/documents/${documentId}`,
+    token,
+    { method: 'DELETE' },
+  );
+}
+
 export function assignSettlementAccount(
   token: string,
   id: string,
@@ -139,6 +222,93 @@ export function makerApproveOnboarding(token: string, id: string) {
   });
 }
 
+export function approveKyc(token: string, id: string, remarks?: string) {
+  return request<OnboardingApplication>(`/merchant-onboarding/${id}/kyc/approve`, token, {
+    method: 'POST',
+    body: JSON.stringify({ remarks }),
+  });
+}
+
+export function approveRisk(
+  token: string,
+  id: string,
+  body: { riskScore?: number; riskLevel?: string; remarks?: string },
+) {
+  return request<OnboardingApplication>(`/merchant-onboarding/${id}/risk/approve`, token, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export function validateBank(token: string, id: string) {
+  return request<OnboardingApplication>(`/merchant-onboarding/${id}/bank/validate`, token, {
+    method: 'POST',
+  });
+}
+
+export function registerTps(token: string, id: string) {
+  return request<OnboardingApplication>(`/merchant-onboarding/${id}/tps/register`, token, {
+    method: 'POST',
+  });
+}
+
+export function retryTps(token: string, id: string) {
+  return request<OnboardingApplication>(`/merchant-onboarding/${id}/tps/retry`, token, {
+    method: 'POST',
+  });
+}
+
+export function registerAliasQr(token: string, id: string) {
+  return request<OnboardingApplication>(`/merchant-onboarding/${id}/alias-qr/register`, token, {
+    method: 'POST',
+  });
+}
+
+export function saveSettlement(
+  token: string,
+  id: string,
+  body: Record<string, unknown>,
+) {
+  return request<OnboardingApplication>(`/merchant-onboarding/${id}/settlement`, token, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export function submitSettlement(token: string, id: string) {
+  return request<OnboardingApplication>(`/merchant-onboarding/${id}/settlement`, token, {
+    method: 'POST',
+    body: JSON.stringify({ payoutCycle: 'DAILY' }),
+  });
+}
+
+export function approveSettlement(token: string, id: string, remarks?: string) {
+  return request<OnboardingApplication>(`/merchant-onboarding/${id}/settlement/approve`, token, {
+    method: 'POST',
+    body: JSON.stringify({ remarks }),
+  });
+}
+
+export function activateOnboarding(token: string, id: string) {
+  return request<OnboardingApplication>(`/merchant-onboarding/${id}/activate`, token, {
+    method: 'POST',
+  });
+}
+
+export function rejectKyc(token: string, id: string, remarks: string, rejectionCode = 'INCOMPLETE_KYC') {
+  return request<OnboardingApplication>(`/merchant-onboarding/${id}/kyc/reject`, token, {
+    method: 'POST',
+    body: JSON.stringify({ remarks, rejectionCode }),
+  });
+}
+
+export function sendBackOnboarding(token: string, id: string, remarks: string) {
+  return request<OnboardingApplication>(`/merchant-onboarding/${id}/send-back`, token, {
+    method: 'POST',
+    body: JSON.stringify({ remarks }),
+  });
+}
+
 export function rejectOnboarding(
   token: string,
   id: string,
@@ -164,6 +334,17 @@ export function getOnboardingTimeline(token: string, id: string) {
   );
 }
 
+export function getOnboardingAuditLogs(token: string, id: string) {
+  return request<Array<{
+    id: string;
+    action: string;
+    oldStatus?: string | null;
+    newStatus?: string | null;
+    performedAt: string;
+    remarks?: string | null;
+  }>>(`/merchant-onboarding/${id}/audit-logs`, token);
+}
+
 export async function uploadOnboardingKycFile(
   token: string,
   applicationId: string,
@@ -180,3 +361,35 @@ export async function uploadOnboardingKycFile(
     fileSize: file.size,
   });
 }
+
+export const ONBOARDING_WIZARD_STEPS = [
+  { code: 'ENTITY_PROFILE', label: 'Merchant Profile' },
+  { code: 'KYC_DOCUMENTS', label: 'KYC Documents' },
+  { code: 'SETTLEMENT_ACCOUNT', label: 'Bank Account' },
+  { code: 'RISK_REVIEW', label: 'Risk Review' },
+  { code: 'TPS_REGISTRATION', label: 'TPS Registration' },
+  { code: 'ALIAS_QR_SETUP', label: 'Store / Alias / QR' },
+  { code: 'SETTLEMENT_CONFIG', label: 'Settlement Config' },
+  { code: 'FINAL_REVIEW', label: 'Review & Activate' },
+] as const;
+
+export const DASHBOARD_STATUS_LABELS: Record<string, string> = {
+  DRAFT: 'Draft',
+  SUBMITTED: 'Submitted',
+  PENDING_KYC_DOCUMENTS: 'Pending KYC Docs',
+  PENDING_KYC_APPROVAL: 'Pending KYC',
+  UNDER_REVIEW: 'Under Review',
+  PENDING_RISK_REVIEW: 'Pending Risk',
+  PENDING_BANK_VALIDATION: 'Pending Bank',
+  BANK_VALIDATION_FAILED: 'Bank Failed',
+  PENDING_TPS_REGISTRATION: 'Pending TPS',
+  TPS_REGISTRATION_FAILED: 'TPS Failed',
+  PENDING_ALIAS_QR_SETUP: 'Pending QR',
+  ALIAS_QR_FAILED: 'QR Failed',
+  PENDING_SETTLEMENT_SETUP: 'Pending Settlement',
+  SETTLEMENT_APPROVAL_PENDING: 'Settlement Approval',
+  READY_FOR_ACTIVATION: 'Ready',
+  ACTIVE: 'Active',
+  REJECTED: 'Rejected',
+  FAILED: 'Failed',
+};

@@ -2,9 +2,10 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Shield, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { AuthApiError } from '@/lib/auth-api';
 import { useAuth } from '@/providers/auth-provider';
+import { BrandLogo } from '@/components/layout/brand-logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -54,56 +55,48 @@ export default function LoginPage() {
     <div className="flex min-h-screen">
       {/* Brand panel */}
       <div className="hidden w-1/2 flex-col justify-between bg-[var(--sidebar)] p-12 text-white lg:flex">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10">
-            <Shield className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-lg font-semibold">MMS Platform</p>
-            <p className="text-xs text-sidebar-muted">Merchant Management System</p>
-          </div>
-        </div>
+        <BrandLogo variant="login" showTagline={false} />
 
         <div className="space-y-6">
+          <p className="text-sm font-medium uppercase tracking-widest text-[var(--brand-yellow)]">
+            Merchant Management System
+          </p>
           <h1 className="text-4xl font-semibold leading-tight tracking-tight">
-            Enterprise Merchant<br />Management for<br />Tanzania&apos;s Payment Network
+            Enterprise payments &amp;<br />
+            merchant operations<br />
+            for Tanzania
           </h1>
           <p className="max-w-md text-sm leading-relaxed text-sidebar-muted">
             TANQR-compliant QR payments, TIPS integration, school fee collection,
-            settlement, and reconciliation — built for banks and acquirers.
+            settlement, and reconciliation — powered by Letshego Faidika Bank.
           </p>
           <div className="flex gap-6 text-xs text-sidebar-muted">
             <div>
-              <p className="text-2xl font-semibold text-white">70+</p>
+              <p className="text-2xl font-semibold text-[var(--brand-yellow)]">70+</p>
               <p>Database Tables</p>
             </div>
             <div>
-              <p className="text-2xl font-semibold text-white">20</p>
+              <p className="text-2xl font-semibold text-[var(--brand-yellow)]">20</p>
               <p>Modules</p>
             </div>
             <div>
-              <p className="text-2xl font-semibold text-white">137</p>
+              <p className="text-2xl font-semibold text-[var(--brand-yellow)]">137</p>
               <p>API Endpoints</p>
             </div>
           </div>
         </div>
 
         <p className="text-xs text-sidebar-muted">
-          Bank of Tanzania TANQR Standard · TIPS Aligned · BoT Examination Ready
+          Bank of Tanzania TANQR Standard · TIPS Aligned · Letshego Faidika Bank
         </p>
       </div>
 
       {/* Login form */}
       <div className="flex flex-1 items-center justify-center bg-background p-6">
         <div className="w-full max-w-md space-y-6">
-          <div className="flex items-center gap-3 lg:hidden">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Shield className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="font-semibold">MMS Platform</p>
-              <p className="text-xs text-muted-foreground">Merchant Management System</p>
-            </div>
+          <div className="lg:hidden">
+            <BrandLogo variant="compact" showTagline={false} />
+            <p className="mt-2 text-xs text-muted-foreground">Merchant Management System</p>
           </div>
 
           <Card className="border-border shadow-[var(--shadow-lg)]">

@@ -19,7 +19,7 @@ export function HeroMetrics({ metrics }: HeroMetricsProps) {
         {metrics.map((m, i) => {
           const positive = m.change && m.change.value >= 0;
           return (
-            <div key={m.label} className={cn('px-6 py-5', i === 0 && 'bg-gradient-to-br from-[#f8fafc] to-white')}>
+            <div key={m.label} className={cn('px-6 py-5', i === 0 && 'bg-[var(--accent-muted)]')}>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 {m.label}
               </p>
@@ -35,8 +35,8 @@ export function HeroMetrics({ metrics }: HeroMetricsProps) {
                     className={cn(
                       'inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-medium',
                       positive
-                        ? 'bg-[#ecfdf5] text-[#047857]'
-                        : 'bg-[#fef2f2] text-[#b91c1c]',
+                        ? 'bg-[var(--success-muted)] text-[var(--success)]'
+                        : 'bg-[var(--info-muted)] text-[var(--brand-black)]',
                     )}
                   >
                     {positive ? (

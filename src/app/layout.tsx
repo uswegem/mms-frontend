@@ -16,8 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'MMS Platform — Merchant Management System',
-  description: 'Enterprise TANQR / TIPS merchant platform for banks and payment networks — Tanzania',
+  title: 'Letshego Faidika Bank — MMS Platform',
+  description:
+    'Merchant Management System for Letshego Faidika Bank — TANQR / TIPS payments, Tanzania',
 };
 
 export default function RootLayout({
@@ -29,8 +30,12 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body
+        className="min-h-full flex flex-col bg-background text-foreground"
+        suppressHydrationWarning
+      >
         <QueryProvider>
           <AuthProvider>{children}</AuthProvider>
         </QueryProvider>

@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Shield } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { filterNavByPermissions, NAV_SECTIONS } from '@/lib/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { BrandLogo } from '@/components/layout/brand-logo';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -27,16 +28,8 @@ export function Sidebar({ collapsed, onToggle, permissions }: SidebarProps) {
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-4">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10">
-          <Shield className="h-5 w-5 text-white" />
-        </div>
-        {!collapsed && (
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">MMS Platform</p>
-            <p className="truncate text-[10px] text-sidebar-muted">TANQR · TIPS · Tanzania</p>
-          </div>
-        )}
+      <div className="flex h-16 items-center border-b border-sidebar-border px-4">
+        <BrandLogo collapsed={collapsed} variant="sidebar" />
       </div>
 
       {/* Navigation */}
@@ -62,11 +55,11 @@ export function Sidebar({ collapsed, onToggle, permissions }: SidebarProps) {
                       className={cn(
                         'group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                         isActive
-                          ? 'bg-sidebar-accent text-white'
+                          ? 'bg-sidebar-accent text-[var(--brand-yellow)]'
                           : 'text-sidebar-muted hover:bg-white/5 hover:text-sidebar-foreground',
                       )}
                     >
-                      <Icon className={cn('h-4 w-4 shrink-0', isActive && 'text-white')} />
+                      <Icon className={cn('h-4 w-4 shrink-0', isActive && 'text-[var(--brand-yellow)]')} />
                       {!collapsed && (
                         <>
                           <span className="flex-1 truncate">{item.label}</span>

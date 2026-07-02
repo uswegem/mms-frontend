@@ -6,12 +6,12 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-slate-100 text-slate-700 ring-slate-200',
-        primary: 'bg-[#eff6ff] text-[#1e40af] ring-[#bfdbfe]',
-        success: 'bg-[#ecfdf5] text-[#047857] ring-[#a7f3d0]',
-        warning: 'bg-[#fffbeb] text-[#b45309] ring-[#fde68a]',
-        danger: 'bg-[#fef2f2] text-[#b91c1c] ring-[#fecaca]',
-        info: 'bg-[#f0f9ff] text-[#0369a1] ring-[#bae6fd]',
+        default: 'bg-muted text-foreground ring-border',
+        primary: 'bg-[var(--accent-muted)] text-[var(--brand-black)] ring-[color-mix(in_srgb,var(--brand-yellow)_50%,transparent)]',
+        success: 'bg-[var(--success-muted)] text-[var(--success)] ring-[var(--success-border)]',
+        warning: 'bg-[var(--warning-muted)] text-[var(--warning)] ring-[var(--warning-border)]',
+        danger: 'bg-[var(--destructive-muted)] text-[var(--destructive)] ring-[var(--destructive-border)]',
+        info: 'bg-[var(--info-muted)] text-[var(--info)] ring-[var(--info-border)]',
         outline: 'bg-transparent text-muted-foreground ring-border',
       },
     },

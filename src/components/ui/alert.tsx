@@ -5,10 +5,10 @@ type AlertVariant = 'default' | 'success' | 'error' | 'warning' | 'info';
 
 const variants: Record<AlertVariant, string> = {
   default: 'border-border bg-card text-foreground',
-  success: 'border-[#a7f3d0] bg-[#ecfdf5] text-[#047857]',
-  error: 'border-[#fecaca] bg-[#fef2f2] text-[#b91c1c]',
-  warning: 'border-[#fde68a] bg-[#fffbeb] text-[#b45309]',
-  info: 'border-[#bae6fd] bg-[#f0f9ff] text-[#0369a1]',
+  success: 'border-[var(--success-border)] bg-[var(--success-muted)] text-[var(--success)]',
+  error: 'border-[var(--destructive-border)] bg-[var(--destructive-muted)] text-[var(--destructive)]',
+  warning: 'border-[var(--warning-border)] bg-[var(--warning-muted)] text-[var(--warning)]',
+  info: 'border-[var(--info-border)] bg-[var(--info-muted)] text-[var(--info)]',
 };
 
 const icons: Record<AlertVariant, React.ReactNode> = {

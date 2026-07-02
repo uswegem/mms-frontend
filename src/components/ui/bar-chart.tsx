@@ -19,7 +19,7 @@ export function BarChart({
   data,
   height = 200,
   className,
-  color = '#1e3a5f',
+  color = 'var(--brand-yellow)',
   highlightLast = true,
 }: BarChartProps) {
   const max = Math.max(...data.map((d) => d.value)) * 1.12;
@@ -44,7 +44,7 @@ export function BarChart({
                 className="w-full max-w-[48px] rounded-t-md transition-all duration-300 group-hover:opacity-100"
                 style={{
                   height: `${barH}%`,
-                  backgroundColor: isHighlight ? '#2563eb' : color,
+                  backgroundColor: isHighlight ? 'var(--brand-black)' : color,
                   opacity: isHighlight ? 1 : 0.7,
                   minHeight: 6,
                 }}

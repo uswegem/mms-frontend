@@ -184,10 +184,10 @@ export default function DashboardPage() {
           <MerchantPortfolio
             total={total}
             items={[
-              { label: 'Active', count: active, color: '#059669', bg: '#ecfdf5' },
-              { label: 'Pending', count: pending, color: '#d97706', bg: '#fffbeb' },
-              { label: 'Dormant', count: dormant, color: '#0284c7', bg: '#f0f9ff' },
-              { label: 'Suspended', count: suspended, color: '#dc2626', bg: '#fef2f2' },
+              { label: 'Active', count: active, color: 'var(--brand-yellow)', bg: 'var(--accent-muted)' },
+              { label: 'Pending', count: pending, color: 'var(--brand-black)', bg: 'var(--warning-muted)' },
+              { label: 'Dormant', count: dormant, color: 'var(--muted-foreground)', bg: 'var(--info-muted)' },
+              { label: 'Suspended', count: suspended, color: 'var(--brand-black)', bg: 'var(--destructive-muted)' },
             ]}
           />
 
@@ -244,7 +244,7 @@ export default function DashboardPage() {
                 <div key={apr.id}>
                   <div className="flex gap-3 px-6 py-3">
                     <div className="mt-1 flex flex-col items-center">
-                      <div className="h-2 w-2 rounded-full bg-[#d97706]" />
+                      <div className="h-2 w-2 rounded-full bg-[var(--brand-yellow)]" />
                       {i < PENDING_APPROVALS.length - 1 && (
                         <div className="mt-1 w-px flex-1 bg-border" />
                       )}

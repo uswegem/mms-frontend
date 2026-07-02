@@ -186,7 +186,7 @@ export function SchoolStudentsPanel({ merchantId }: SchoolStudentsPanelProps) {
         </Card>
       )}
 
-      {message && <p className="text-sm text-green-700">{message}</p>}
+      {message && <p className="text-sm text-[var(--brand-black)]">{message}</p>}
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Card>

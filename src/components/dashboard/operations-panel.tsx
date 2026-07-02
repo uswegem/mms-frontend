@@ -10,16 +10,16 @@ export interface OpsItem {
 }
 
 const statusStyles = {
-  healthy: 'border-[#a7f3d0] bg-[#ecfdf5]',
-  warning: 'border-[#fde68a] bg-[#fffbeb]',
-  critical: 'border-[#fecaca] bg-[#fef2f2]',
+  healthy: 'border-[var(--success-border)] bg-[var(--success-muted)]',
+  warning: 'border-[var(--warning-border)] bg-[var(--warning-muted)]',
+  critical: 'border-[var(--destructive-border)] bg-[var(--destructive-muted)]',
   neutral: 'border-border bg-muted/30',
 };
 
 const dotStyles = {
-  healthy: 'bg-[#059669]',
-  warning: 'bg-[#d97706]',
-  critical: 'bg-[#dc2626]',
+  healthy: 'bg-[var(--brand-yellow)]',
+  warning: 'bg-[var(--brand-black)]',
+  critical: 'bg-[var(--brand-black)]',
   neutral: 'bg-muted-foreground',
 };
 
