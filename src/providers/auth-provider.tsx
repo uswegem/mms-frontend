@@ -16,6 +16,7 @@ import {
   refreshSession,
   TokenResponse,
 } from '@/lib/auth-api';
+import { getMyPermissions } from '@/lib/authz-api';
 
 const TOKEN_KEY = 'mms_access_token';
 
@@ -38,6 +39,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [livePermissions, setLivePermissions] = useState<JwtClaims | null>(null);
 
   const setSession = useCallback((token: string) => {
     setAccessToken(token);
@@ -92,9 +94,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearSession();
   }, [accessToken, clearSession]);
 
+  useEffect(() => {
+    if (!accessToken) {
+      setLivePermissions(null);
+      return;
+    }
+    getMyPermissions(accessToken)
+      .then((effective) => {
+        const claims = decodeJwt(accessToken);
+        if (!claims) return;
+        setLivePermissions({
+          ...claims,
+          roles: effective.roles,
+          permissions: effective.permissions,
+          storeIds: effective.storeIds,
+          terminalIds: effective.terminalIds,
+        });
+      })
+      .catch(() => {
+        setLivePermissions(null);
+      });
+  }, [accessToken]);
+
   const user = useMemo(
-    () => (accessToken ? decodeJwt(accessToken) : null),
-    [accessToken],
+    () => livePermissions ?? (accessToken ? decodeJwt(accessToken) : null),
+    [accessToken, livePermissions],
   );
 
   const value = useMemo(

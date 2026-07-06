@@ -143,7 +143,7 @@ export const NAV_SECTIONS: NavSection[] = [
         label: 'Roles & Permissions',
         href: '/roles',
         icon: Shield,
-        permission: 'user:read',
+        permission: 'authz:role:read',
       },
       {
         id: 'audit',

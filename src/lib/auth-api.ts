@@ -89,6 +89,8 @@ export interface JwtClaims {
   merchantId?: string;
   roles: string[];
   permissions: string[];
+  storeIds?: string[];
+  terminalIds?: string[];
   exp: number;
   iat: number;
 }
