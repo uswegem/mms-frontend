@@ -2,6 +2,7 @@
 
 import { use, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -21,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MerchantEditForm } from '@/components/merchants/merchant-edit-form';
 import { MerchantKycPanel } from '@/components/merchants/merchant-kyc-panel';
 import { MerchantStatusPanel } from '@/components/merchants/merchant-status-panel';
+import { MerchantQrTab, useMerchantQrSummary } from '@/components/merchants/qr/merchant-qr-tab';
 import { SchoolStudentsPanel } from '@/components/schools/school-students-panel';
 import { getMerchant } from '@/lib/merchants-api';
 import { formatDateTime } from '@/lib/format';
@@ -31,6 +33,8 @@ export default function MerchantDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab') ?? 'profile';
   const queryClient = useQueryClient();
   const { user, accessToken } = useAuth();
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +54,8 @@ export default function MerchantDetailPage({
 
   const merchant = merchantQuery.data;
   const token = accessToken!;
+
+  const qrSummaryQuery = useMerchantQrSummary(id, merchant?.status ?? 'DRAFT');
 
   async function refreshMerchant() {
     await queryClient.invalidateQueries({ queryKey: ['merchant', id] });
@@ -114,7 +120,11 @@ export default function MerchantDetailPage({
             <QrCode className="h-8 w-8 text-primary" />
             <div>
               <p className="text-xs text-muted-foreground">QR Codes</p>
-              <p className="text-sm font-medium">—</p>
+              <p className="text-sm font-medium">
+                {qrSummaryQuery.isLoading
+                  ? '…'
+                  : (qrSummaryQuery.data?.label ?? '—')}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -138,7 +148,7 @@ export default function MerchantDetailPage({
         </Card>
       </div>
 
-      <Tabs defaultValue="profile">
+      <Tabs defaultValue={initialTab} key={initialTab}>
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="kyc">KYC</TabsTrigger>
@@ -225,19 +235,11 @@ export default function MerchantDetailPage({
         )}
 
         <TabsContent value="qr">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">QR Codes</CardTitle>
-              <CardDescription>Static TANQR codes issued on school approval and student enrolment</CardDescription>
-            </CardHeader>
-            <CardContent className="py-12 text-center">
-              <QrCode className="mx-auto h-12 w-12 text-muted-foreground/30" />
-              <p className="mt-4 text-sm text-muted-foreground">
-                QR payloads are stored when school onboarding is approved and when students are enrolled.
-                Use the API <code className="text-xs">GET /qr/merchant/:merchantId</code> to list codes.
-              </p>
-            </CardContent>
-          </Card>
+          <MerchantQrTab
+            merchant={merchant}
+            onSuccess={(msg) => setSuccess(msg)}
+            onError={(msg) => setError(msg)}
+          />
         </TabsContent>
 
         <TabsContent value="settlement">

@@ -246,20 +246,32 @@ export function validateBank(token: string, id: string) {
   });
 }
 
-export function registerTps(token: string, id: string) {
-  return request<OnboardingApplication>(`/merchant-onboarding/${id}/tps/register`, token, {
+export function registerTips(token: string, id: string) {
+  return request<OnboardingApplication>(`/merchant-onboarding/${id}/tips/register`, token, {
     method: 'POST',
   });
 }
 
-export function retryTps(token: string, id: string) {
-  return request<OnboardingApplication>(`/merchant-onboarding/${id}/tps/retry`, token, {
+export function retryTips(token: string, id: string) {
+  return request<OnboardingApplication>(`/merchant-onboarding/${id}/tips/retry`, token, {
     method: 'POST',
   });
 }
+
+/** @deprecated Use registerTips */
+export const registerTps = registerTips;
+
+/** @deprecated Use retryTips */
+export const retryTps = retryTips;
 
 export function registerAliasQr(token: string, id: string) {
   return request<OnboardingApplication>(`/merchant-onboarding/${id}/alias-qr/register`, token, {
+    method: 'POST',
+  });
+}
+
+export function retryAliasQr(token: string, id: string) {
+  return request<OnboardingApplication>(`/merchant-onboarding/${id}/alias-qr/retry`, token, {
     method: 'POST',
   });
 }
@@ -367,11 +379,37 @@ export const ONBOARDING_WIZARD_STEPS = [
   { code: 'KYC_DOCUMENTS', label: 'KYC Documents' },
   { code: 'SETTLEMENT_ACCOUNT', label: 'Bank Account' },
   { code: 'RISK_REVIEW', label: 'Risk Review' },
-  { code: 'TPS_REGISTRATION', label: 'TPS Registration' },
+  { code: 'TPS_REGISTRATION', label: 'TIPS Registration' },
   { code: 'ALIAS_QR_SETUP', label: 'Store / Alias / QR' },
   { code: 'SETTLEMENT_CONFIG', label: 'Settlement Config' },
   { code: 'FINAL_REVIEW', label: 'Review & Activate' },
 ] as const;
+
+/** User-facing label for integration types stored in the database. */
+export function integrationTypeLabel(integrationType: string): string {
+  if (integrationType === 'TPS') return 'TIPS';
+  return integrationType;
+}
+
+/** User-facing onboarding status (internal codes may still contain TPS). */
+export function formatOnboardingStatus(status: string): string {
+  return (
+    DASHBOARD_STATUS_LABELS[status] ??
+    status.replace(/TPS/g, 'TIPS').replace(/_/g, ' ')
+  );
+}
+
+/** User-facing onboarding step label. */
+export function formatOnboardingStep(stepCode: string): string {
+  const known = ONBOARDING_WIZARD_STEPS.find((s) => s.code === stepCode);
+  if (known) return known.label;
+  return formatOnboardingStatus(stepCode);
+}
+
+/** User-facing audit action label. */
+export function formatAuditAction(action: string): string {
+  return action.replace(/tps/gi, 'TIPS').replace(/_/g, ' ');
+}
 
 export const DASHBOARD_STATUS_LABELS: Record<string, string> = {
   DRAFT: 'Draft',
@@ -382,8 +420,9 @@ export const DASHBOARD_STATUS_LABELS: Record<string, string> = {
   PENDING_RISK_REVIEW: 'Pending Risk',
   PENDING_BANK_VALIDATION: 'Pending Bank',
   BANK_VALIDATION_FAILED: 'Bank Failed',
-  PENDING_TPS_REGISTRATION: 'Pending TPS',
-  TPS_REGISTRATION_FAILED: 'TPS Failed',
+  PENDING_TPS_REGISTRATION: 'Pending TIPS',
+  TPS_REGISTRATION_FAILED: 'TIPS Failed',
+  TPS_REGISTERED: 'TIPS Registered',
   PENDING_ALIAS_QR_SETUP: 'Pending QR',
   ALIAS_QR_FAILED: 'QR Failed',
   PENDING_SETTLEMENT_SETUP: 'Pending Settlement',

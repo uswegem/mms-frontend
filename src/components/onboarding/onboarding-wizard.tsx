@@ -22,6 +22,8 @@ import {
 } from '@/lib/onboarding-api';
 import { createSchoolOnboarding } from '@/lib/schools-api';
 import { useTanzaniaLocations } from '@/hooks/use-tanzania-locations';
+import { BankSelectField } from '@/components/onboarding/bank-select-field';
+import { DEFAULT_BANK_SWIFT, formatBankDisplay } from '@/lib/tanzania-banks';
 
 const WIZARD_STEPS = ['Type', 'Profile', 'Settlement', 'KYC', 'Review'] as const;
 
@@ -51,7 +53,7 @@ export function OnboardingWizard() {
     headName: '',
     accountNumber: '',
     accountName: '',
-    bankCode: 'CRDB',
+    bankCode: DEFAULT_BANK_SWIFT,
     kycFile: null as File | null,
   });
 
@@ -331,10 +333,10 @@ export function OnboardingWizard() {
                   <Label>Account Name *</Label>
                   <Input required value={form.accountName} onChange={(e) => setForm({ ...form, accountName: e.target.value })} />
                 </div>
-                <div>
-                  <Label>Bank Code *</Label>
-                  <Input required value={form.bankCode} onChange={(e) => setForm({ ...form, bankCode: e.target.value })} />
-                </div>
+                <BankSelectField
+                  value={form.bankCode}
+                  onChange={(swiftCode) => setForm({ ...form, bankCode: swiftCode })}
+                />
               </div>
             )}
 
@@ -356,6 +358,7 @@ export function OnboardingWizard() {
                 <div><dt className="text-muted-foreground">Name</dt><dd>{form.legalName}</dd></div>
                 <div><dt className="text-muted-foreground">Trading</dt><dd>{form.tradingName}</dd></div>
                 <div><dt className="text-muted-foreground">TIN</dt><dd>{form.taxId || '—'}</dd></div>
+                <div><dt className="text-muted-foreground">Bank</dt><dd>{formatBankDisplay(form.bankCode)}</dd></div>
                 <div><dt className="text-muted-foreground">Account</dt><dd className="font-mono">{form.accountNumber}</dd></div>
                 <div><dt className="text-muted-foreground">KYC</dt><dd>{form.kycFile?.name ?? '—'}</dd></div>
               </dl>

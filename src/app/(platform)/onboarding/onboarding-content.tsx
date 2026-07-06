@@ -21,27 +21,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { createOnboardingApplication, listOnboardingApplications } from '@/lib/onboarding-api';
+import { createOnboardingApplication, listOnboardingApplications, formatOnboardingStatus, DASHBOARD_STATUS_LABELS } from '@/lib/onboarding-api';
 import { OnboardingDashboard } from '@/components/onboarding/onboarding-dashboard';
 import { createSchoolOnboarding } from '@/lib/schools-api';
 import { formatDate } from '@/lib/format';
 import { useTanzaniaLocations } from '@/hooks/use-tanzania-locations';
 
-const STATUSES = [
-  '',
-  'DRAFT',
-  'PENDING_KYC_APPROVAL',
-  'PENDING_RISK_REVIEW',
-  'PENDING_BANK_VALIDATION',
-  'PENDING_TPS_REGISTRATION',
-  'PENDING_ALIAS_QR_SETUP',
-  'SETTLEMENT_APPROVAL_PENDING',
-  'READY_FOR_ACTIVATION',
-  'ACTIVE',
-  'REJECTED',
-  'SUBMITTED',
-  'UNDER_REVIEW',
-];
+const STATUSES = ['', ...Object.keys(DASHBOARD_STATUS_LABELS)];
 
 export function OnboardingPageContent() {
   const { accessToken, user } = useAuth();
@@ -291,7 +277,7 @@ export function OnboardingPageContent() {
             />
             <Select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="w-48">
               {STATUSES.map((s) => (
-                <option key={s || 'all'} value={s}>{s || 'All Statuses'}</option>
+                <option key={s || 'all'} value={s}>{s ? formatOnboardingStatus(s) : 'All Statuses'}</option>
               ))}
             </Select>
             <Select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value as typeof typeFilter); setPage(1); }} className="w-40">
@@ -332,7 +318,7 @@ export function OnboardingPageContent() {
                     {app.merchant.isSchool ? 'School' : app.legalEntityType.replace('_', ' ')}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={statusBadgeVariant(app.status)}>{app.status}</Badge>
+                    <Badge variant={statusBadgeVariant(app.status)}>{formatOnboardingStatus(app.status)}</Badge>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{formatDate(app.createdAt)}</TableCell>
                   <TableCell className="text-right">

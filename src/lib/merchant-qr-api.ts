@@ -1,0 +1,97 @@
+import type {
+  CreateDynamicQrRequest,
+  GenerateStaticQrRequest,
+  MerchantQrResponse,
+  QrActionResult,
+} from '@/types/merchant-qr';
+
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+
+export const API_ORIGIN = API_BASE.replace(/\/api\/v1\/?$/, '');
+
+function authHeaders(token: string): HeadersInit {
+  return {
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  };
+}
+
+async function parseError(res: Response): Promise<Error> {
+  try {
+    const body = (await res.json()) as { detail?: string; title?: string };
+    return new Error(body.detail ?? body.title ?? `Request failed (${res.status})`);
+  } catch {
+    return new Error(`Request failed (${res.status})`);
+  }
+}
+
+export function resolveAssetUrl(path?: string | null): string | undefined {
+  if (!path) return undefined;
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  return `${API_ORIGIN}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
+export async function fetchMerchantQrs(
+  token: string,
+  merchantId: string,
+): Promise<MerchantQrResponse> {
+  const res = await fetch(`${API_BASE}/merchants/${merchantId}/qr`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+  if (!res.ok) throw await parseError(res);
+  return res.json();
+}
+
+export async function generateStaticQr(
+  token: string,
+  merchantId: string,
+  body: GenerateStaticQrRequest,
+): Promise<QrActionResult> {
+  const res = await fetch(`${API_BASE}/merchants/${merchantId}/qr/static`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw await parseError(res);
+  return res.json();
+}
+
+export async function createDynamicQr(
+  token: string,
+  merchantId: string,
+  body: CreateDynamicQrRequest,
+): Promise<QrActionResult> {
+  const res = await fetch(`${API_BASE}/merchants/${merchantId}/qr/dynamic`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw await parseError(res);
+  return res.json();
+}
+
+export async function regenerateQr(
+  token: string,
+  qrId: string,
+): Promise<QrActionResult> {
+  const res = await fetch(`${API_BASE}/qr/${qrId}/regenerate`, {
+    method: 'POST',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw await parseError(res);
+  return res.json();
+}
+
+export async function disableQr(token: string, qrId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/qr/${qrId}/disable`, {
+    method: 'PATCH',
+    headers: authHeaders(token),
+  });
+  if (!res.ok) throw await parseError(res);
+}
+
+export function qrDownloadUrl(qrId: string, format: 'png' | 'svg' | 'pdf'): string {
+  return `${API_BASE}/qr/${qrId}/download?format=${format}`;
+}

@@ -14,6 +14,9 @@ import { Alert } from '@/components/ui/alert';
 import { Badge, statusBadgeVariant } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OnboardingStepper } from '@/components/onboarding/onboarding-stepper';
+import { OnboardingStoreQrPanel } from '@/components/onboarding/onboarding-store-qr-panel';
+import { BankSelectField } from '@/components/onboarding/bank-select-field';
+import { DEFAULT_BANK_SWIFT, formatBankDisplay } from '@/lib/tanzania-banks';
 import {
   activateOnboarding,
   approveKyc,
@@ -24,17 +27,21 @@ import {
   getOnboardingAuditLogs,
   getOnboardingTimeline,
   makerApproveOnboarding,
+  registerTips,
+  retryTips,
   registerAliasQr,
-  registerTps,
+  retryAliasQr,
   rejectOnboarding,
   resubmitOnboarding,
   rejectKyc,
   sendBackOnboarding,
-  retryTps,
   saveSettlement,
   submitOnboarding,
   uploadOnboardingKycFile,
   verifySettlement,
+  formatOnboardingStatus,
+  formatOnboardingStep,
+  formatAuditAction,
   type OnboardingApplication,
 } from '@/lib/onboarding-api';
 
@@ -46,7 +53,7 @@ export function OnboardingDetailView({ id }: { id: string }) {
   const [success, setSuccess] = useState<string | null>(null);
   const [accountNumber, setAccountNumber] = useState('');
   const [accountName, setAccountName] = useState('');
-  const [bankCode, setBankCode] = useState('CRDB');
+  const [bankCode, setBankCode] = useState(DEFAULT_BANK_SWIFT);
   const [settlement, setSettlement] = useState({
     settlementAlias: '',
     payoutCycle: 'DAILY',
@@ -111,7 +118,7 @@ export function OnboardingDetailView({ id }: { id: string }) {
           <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
         </Link>
         <PageHeader title={app.applicationNo} description={app.merchant.tradingName}>
-          <Badge variant={statusBadgeVariant(app.status)}>{app.status}</Badge>
+          <Badge variant={statusBadgeVariant(app.status)}>{formatOnboardingStatus(app.status)}</Badge>
           {app.merchant.merchantCode && (
             <Badge variant="outline">{app.merchant.merchantCode}</Badge>
           )}
@@ -140,7 +147,7 @@ export function OnboardingDetailView({ id }: { id: string }) {
           <TabsTrigger value="kyc">KYC</TabsTrigger>
           <TabsTrigger value="bank">Bank</TabsTrigger>
           <TabsTrigger value="risk">Risk</TabsTrigger>
-          <TabsTrigger value="tps">TPS</TabsTrigger>
+          <TabsTrigger value="tips">TIPS</TabsTrigger>
           <TabsTrigger value="store">Store / QR</TabsTrigger>
           <TabsTrigger value="settlement">Settlement</TabsTrigger>
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
@@ -204,6 +211,7 @@ export function OnboardingDetailView({ id }: { id: string }) {
             <CardContent className="space-y-3">
               {app.merchant.settlementAccount ? (
                 <div className="text-sm space-y-1">
+                  <p><strong>Bank:</strong> {formatBankDisplay(app.merchant.settlementAccount.bankCode)}</p>
                   <p>{app.merchant.settlementAccount.accountName}</p>
                   <p className="font-mono">{app.merchant.settlementAccount.accountNumber}</p>
                   <p className="text-muted-foreground">
@@ -221,8 +229,7 @@ export function OnboardingDetailView({ id }: { id: string }) {
                   <Input value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} />
                   <Label>Account Name</Label>
                   <Input value={accountName} onChange={(e) => setAccountName(e.target.value)} />
-                  <Label>Bank Code</Label>
-                  <Input value={bankCode} onChange={(e) => setBankCode(e.target.value)} />
+                  <BankSelectField value={bankCode} onChange={setBankCode} />
                   <Button size="sm" onClick={() => run('Settlement assigned', () =>
                     assignSettlementAccount(token, id, { accountNumber, accountName, bankCode }),
                   )}>
@@ -260,22 +267,25 @@ export function OnboardingDetailView({ id }: { id: string }) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="tps">
+        <TabsContent value="tips">
           <Card>
-            <CardHeader><CardTitle className="text-base">TPS Registration</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">TIPS Registration</CardTitle></CardHeader>
             <CardContent className="text-sm space-y-2">
               {(app.merchant.integrations ?? []).filter((i) => i.integrationType === 'TPS').map((i) => (
                 <div key={i.integrationType} className="rounded border border-border p-3">
                   <p><strong>Status:</strong> {i.status}</p>
-                  <p><strong>TPS ID:</strong> {i.externalReferenceId ?? '—'}</p>
+                  <p><strong>TIPS ID:</strong> {i.externalReferenceId ?? '—'}</p>
                   {i.failureReason && <p className="text-destructive">{i.failureReason}</p>}
                 </div>
               ))}
+              {(app.merchant.integrations ?? []).filter((i) => i.integrationType === 'TPS').length === 0 && (
+                <p className="text-muted-foreground">TIPS registration has not been started yet.</p>
+              )}
               {canWrite && ['BANK_VALIDATED', 'PENDING_TPS_REGISTRATION', 'TPS_REGISTRATION_FAILED'].includes(app.status) && (
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => run('TPS registration', () => registerTps(token, id))}>Register TPS</Button>
+                <div className="flex gap-2 pt-2">
+                  <Button size="sm" onClick={() => run('TIPS registration', () => registerTips(token, id))}>Register TIPS</Button>
                   {app.status === 'TPS_REGISTRATION_FAILED' && (
-                    <Button size="sm" variant="outline" onClick={() => run('TPS retry', () => retryTps(token, id))}>Retry</Button>
+                    <Button size="sm" variant="outline" onClick={() => run('TIPS retry', () => retryTips(token, id))}>Retry</Button>
                   )}
                 </div>
               )}
@@ -284,28 +294,13 @@ export function OnboardingDetailView({ id }: { id: string }) {
         </TabsContent>
 
         <TabsContent value="store">
-          <Card>
-            <CardHeader><CardTitle className="text-base">Store / Alias / QR</CardTitle></CardHeader>
-            <CardContent className="text-sm space-y-3">
-              {app.merchant.alias && <p><strong>Alias:</strong> {app.merchant.alias.alias8digit}</p>}
-              {(app.merchant.stores ?? []).map((s) => (
-                <div key={s.id} className="rounded border border-border p-3">
-                  <p><strong>{s.storeName}</strong> ({s.storeCode})</p>
-                  <p>Terminal: {s.terminalId ?? '—'}</p>
-                  <p>Lipa Namba: {s.lipaNambaHandle ?? s.alias ?? '—'}</p>
-                  <p>Status: {s.status}</p>
-                  {s.qrString && (
-                    <pre className="mt-2 max-h-24 overflow-auto rounded bg-muted p-2 text-[10px]">{s.qrString}</pre>
-                  )}
-                </div>
-              ))}
-              {canWrite && ['TPS_REGISTERED', 'PENDING_ALIAS_QR_SETUP', 'ALIAS_QR_FAILED'].includes(app.status) && (
-                <Button size="sm" onClick={() => run('Alias/QR registration', () => registerAliasQr(token, id))}>
-                  Register Alias & QR
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+          <OnboardingStoreQrPanel
+            app={app}
+            token={token}
+            canWrite={!!canWrite}
+            onRegister={() => void run('Alias/QR registration', () => registerAliasQr(token, id))}
+            onRetry={() => void run('Alias/QR retry', () => retryAliasQr(token, id))}
+          />
         </TabsContent>
 
         <TabsContent value="settlement">
@@ -371,9 +366,11 @@ export function OnboardingDetailView({ id }: { id: string }) {
             <CardContent className="space-y-2 text-sm">
               {auditQuery.data?.map((log) => (
                 <div key={log.id} className="rounded border border-border p-3">
-                  <p className="font-medium">{log.action}</p>
+                  <p className="font-medium">{formatAuditAction(log.action)}</p>
                   <p className="text-muted-foreground">
-                    {log.oldStatus} → {log.newStatus} · {new Date(log.performedAt).toLocaleString()}
+                    {log.oldStatus ? formatOnboardingStatus(log.oldStatus) : '—'} →{' '}
+                    {log.newStatus ? formatOnboardingStatus(log.newStatus) : '—'} ·{' '}
+                    {new Date(log.performedAt).toLocaleString()}
                   </p>
                   {log.remarks && <p>{log.remarks}</p>}
                 </div>
