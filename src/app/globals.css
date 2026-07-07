@@ -137,3 +137,32 @@ body {
   stroke: var(--border);
   stroke-width: 1;
 }
+
+@keyframes wizard-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wizard-step-enter {
+  animation: wizard-step-in 0.22s ease-out;
+}
+
+.dropzone {
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.dropzone:hover {
+  border-color: var(--brand-yellow);
+  background: var(--accent-muted);
+}
+
+.dropzone.is-dragging {
+  border-color: var(--brand-yellow);
+  background: var(--accent-muted);
+}

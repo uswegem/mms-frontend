@@ -1,9 +1,23 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, ReactNode, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Save } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Building2,
+  Check,
+  ClipboardCheck,
+  FileText,
+  GraduationCap,
+  Landmark,
+  Pencil,
+  Save,
+  ShieldCheck,
+  Store,
+  UploadCloud,
+} from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
@@ -11,7 +25,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { Alert } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
 import {
   assignSettlementAccount,
   createOnboardingApplication,
@@ -24,8 +40,47 @@ import { createSchoolOnboarding } from '@/lib/schools-api';
 import { useTanzaniaLocations } from '@/hooks/use-tanzania-locations';
 import { BankSelectField } from '@/components/onboarding/bank-select-field';
 import { DEFAULT_BANK_SWIFT, formatBankDisplay } from '@/lib/tanzania-banks';
+import { StepProgress, type StepProgressItem } from '@/components/onboarding/step-progress';
 
 const WIZARD_STEPS = ['Type', 'Profile', 'Settlement', 'KYC', 'Review'] as const;
+const STEP_ICONS = [Building2, FileText, Landmark, ShieldCheck, ClipboardCheck];
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function ReviewSection({
+  title,
+  onEdit,
+  children,
+}: {
+  title: string;
+  onEdit: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-muted/30 p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h4>
+        <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={onEdit}>
+          <Pencil className="mr-1 h-3 w-3" /> Edit
+        </Button>
+      </div>
+      <dl className="grid gap-3 text-sm sm:grid-cols-2">{children}</dl>
+    </div>
+  );
+}
+
+function ReviewRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div>
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className={mono ? 'font-mono' : 'font-medium'}>{value}</dd>
+    </div>
+  );
+}
 
 export function OnboardingWizard() {
   const router = useRouter();
@@ -35,6 +90,7 @@ export function OnboardingWizard() {
   const [applicationId, setApplicationId] = useState<string | null>(null);
   const [onboardingType, setOnboardingType] = useState<'MERCHANT' | 'SCHOOL'>('MERCHANT');
   const [entityType, setEntityType] = useState<'SOLE_PROPRIETOR' | 'COMPANY'>('SOLE_PROPRIETOR');
+  const [dragging, setDragging] = useState(false);
   const [form, setForm] = useState({
     legalName: '',
     tradingName: '',
@@ -63,6 +119,16 @@ export function OnboardingWizard() {
   );
 
   const token = accessToken!;
+
+  const stepItems: StepProgressItem[] = WIZARD_STEPS.map((label, i) => {
+    const Icon = STEP_ICONS[i];
+    return {
+      key: label,
+      label,
+      icon: <Icon className="h-4 w-4" />,
+      state: i < step ? 'done' : i === step ? 'active' : 'upcoming',
+    };
+  });
 
   async function ensureApplication(): Promise<string> {
     if (applicationId) return applicationId;
@@ -160,14 +226,13 @@ export function OnboardingWizard() {
         });
       }
       if (step === 3) {
-        const id = await ensureApplication();
-        if (form.kycFile) {
-          await uploadOnboardingKycFile(token, id, form.kycFile, 'KYC_ID');
+        if (!form.kycFile) {
+          throw new Error('Please upload the KYC document to continue');
         }
+        const id = await ensureApplication();
+        await uploadOnboardingKycFile(token, id, form.kycFile, 'KYC_ID');
         if (onboardingType === 'SCHOOL' || entityType === 'COMPANY') {
-          if (form.kycFile) {
-            await uploadOnboardingKycFile(token, id, form.kycFile, 'KYC_TIN');
-          }
+          await uploadOnboardingKycFile(token, id, form.kycFile, 'KYC_TIN');
         }
       }
       if (step === 4) {
@@ -191,23 +256,12 @@ export function OnboardingWizard() {
         <PageHeader title="New Onboarding" description={`Step ${step + 1} of ${WIZARD_STEPS.length}: ${WIZARD_STEPS[step]}`} />
       </div>
 
-      <ol className="flex flex-wrap gap-2">
-        {WIZARD_STEPS.map((label, i) => (
-          <li
-            key={label}
-            className={`rounded-md border px-3 py-1 text-xs font-medium ${
-              i === step ? 'border-[var(--brand-yellow)] bg-[var(--accent-muted)]' : i < step ? 'border-[var(--success-border)] bg-[var(--success-muted)]' : 'border-border text-muted-foreground'
-            }`}
-          >
-            {label}
-          </li>
-        ))}
-      </ol>
+      <StepProgress steps={stepItems} />
 
       {error && <Alert variant="error">{error}</Alert>}
 
       <form onSubmit={handleNext}>
-        <Card>
+        <Card className="shadow-[var(--shadow-md)]">
           <CardHeader>
             <CardTitle>{WIZARD_STEPS[step]}</CardTitle>
             <CardDescription>
@@ -218,24 +272,54 @@ export function OnboardingWizard() {
               {step === 4 && 'Review and submit for checker approval.'}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent key={step} className="wizard-step-enter space-y-4">
             {step === 0 && (
               <div className="grid gap-4 sm:grid-cols-2">
                 <button
                   type="button"
-                  className={`rounded-lg border p-4 text-left ${onboardingType === 'MERCHANT' ? 'border-[var(--brand-yellow)]' : 'border-border'}`}
+                  className={cn(
+                    'group relative flex flex-col items-start gap-3 rounded-lg border-2 p-5 text-left shadow-[var(--shadow-sm)] transition-all hover:shadow-[var(--shadow-md)]',
+                    onboardingType === 'MERCHANT'
+                      ? 'border-[var(--brand-yellow)] bg-[var(--accent-muted)]'
+                      : 'border-border bg-card hover:border-[var(--brand-yellow)]',
+                  )}
                   onClick={() => setOnboardingType('MERCHANT')}
                 >
-                  <p className="font-medium">Merchant</p>
-                  <p className="text-sm text-muted-foreground">Retail / business Lipa Namba onboarding</p>
+                  {onboardingType === 'MERCHANT' && (
+                    <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--brand-yellow)] text-[var(--brand-black)]">
+                      <Check className="h-3.5 w-3.5" />
+                    </span>
+                  )}
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--brand-yellow)] text-[var(--brand-black)]">
+                    <Store className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="font-semibold">Merchant</p>
+                    <p className="text-sm text-muted-foreground">Retail / business Lipa Namba onboarding</p>
+                  </div>
                 </button>
                 <button
                   type="button"
-                  className={`rounded-lg border p-4 text-left ${onboardingType === 'SCHOOL' ? 'border-[var(--brand-yellow)]' : 'border-border'}`}
+                  className={cn(
+                    'group relative flex flex-col items-start gap-3 rounded-lg border-2 p-5 text-left shadow-[var(--shadow-sm)] transition-all hover:shadow-[var(--shadow-md)]',
+                    onboardingType === 'SCHOOL'
+                      ? 'border-[var(--brand-yellow)] bg-[var(--accent-muted)]'
+                      : 'border-border bg-card hover:border-[var(--brand-yellow)]',
+                  )}
                   onClick={() => setOnboardingType('SCHOOL')}
                 >
-                  <p className="font-medium">School</p>
-                  <p className="text-sm text-muted-foreground">School fee collection via TANQR</p>
+                  {onboardingType === 'SCHOOL' && (
+                    <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--brand-yellow)] text-[var(--brand-black)]">
+                      <Check className="h-3.5 w-3.5" />
+                    </span>
+                  )}
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--brand-yellow)] text-[var(--brand-black)]">
+                    <GraduationCap className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="font-semibold">School</p>
+                    <p className="text-sm text-muted-foreground">School fee collection via TANQR</p>
+                  </div>
                 </button>
                 {onboardingType === 'MERCHANT' && (
                   <div className="sm:col-span-2">
@@ -250,81 +334,101 @@ export function OnboardingWizard() {
             )}
 
             {step === 1 && (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <Label>Legal Name *</Label>
-                  <Input required value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} />
-                </div>
-                <div className="sm:col-span-2">
-                  <Label>Trading / Display Name *</Label>
-                  <Input required value={form.tradingName} onChange={(e) => setForm({ ...form, tradingName: e.target.value })} />
-                </div>
-                {onboardingType === 'MERCHANT' && (
-                  <div>
-                    <Label>MCC *</Label>
-                    <Input required pattern="[0-9]{4}" value={form.mcc} onChange={(e) => setForm({ ...form, mcc: e.target.value })} />
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Business Identity</h3>
+                  <Separator className="mb-3 mt-1.5" />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <Label>Legal Name *</Label>
+                      <Input required value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label>Trading / Display Name *</Label>
+                      <Input required value={form.tradingName} onChange={(e) => setForm({ ...form, tradingName: e.target.value })} />
+                    </div>
+                    {onboardingType === 'MERCHANT' && (
+                      <div>
+                        <Label>MCC *</Label>
+                        <Input required pattern="[0-9]{4}" value={form.mcc} onChange={(e) => setForm({ ...form, mcc: e.target.value })} />
+                      </div>
+                    )}
+                    <div>
+                      <Label>TIN</Label>
+                      <Input value={form.taxId} onChange={(e) => setForm({ ...form, taxId: e.target.value })} />
+                    </div>
+                    <div>
+                      <Label>VRN</Label>
+                      <Input value={form.vrn} onChange={(e) => setForm({ ...form, vrn: e.target.value })} />
+                    </div>
+                    <div>
+                      <Label>{onboardingType === 'SCHOOL' ? 'School Registration No *' : 'Business Registration No'}</Label>
+                      <Input required={onboardingType === 'SCHOOL'} value={form.companyRegistrationNo} onChange={(e) => setForm({ ...form, companyRegistrationNo: e.target.value })} />
+                    </div>
+                    {onboardingType === 'SCHOOL' && (
+                      <div>
+                        <Label>Principal / Head Name</Label>
+                        <Input value={form.headName} onChange={(e) => setForm({ ...form, headName: e.target.value })} />
+                      </div>
+                    )}
                   </div>
-                )}
-                <div>
-                  <Label>TIN</Label>
-                  <Input value={form.taxId} onChange={(e) => setForm({ ...form, taxId: e.target.value })} />
                 </div>
+
                 <div>
-                  <Label>VRN</Label>
-                  <Input value={form.vrn} onChange={(e) => setForm({ ...form, vrn: e.target.value })} />
-                </div>
-                <div>
-                  <Label>{onboardingType === 'SCHOOL' ? 'School Registration No *' : 'Business Registration No'}</Label>
-                  <Input required={onboardingType === 'SCHOOL'} value={form.companyRegistrationNo} onChange={(e) => setForm({ ...form, companyRegistrationNo: e.target.value })} />
-                </div>
-                {onboardingType === 'SCHOOL' && (
-                  <div>
-                    <Label>Principal / Head Name</Label>
-                    <Input value={form.headName} onChange={(e) => setForm({ ...form, headName: e.target.value })} />
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Location</h3>
+                  <Separator className="mb-3 mt-1.5" />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <Label>Region</Label>
+                      <Select value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value, district: '', ward: '' })}>
+                        <option value="">Select region</option>
+                        {regions.map((r) => <option key={r} value={r}>{r}</option>)}
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>District</Label>
+                      <Select value={form.district} onChange={(e) => setForm({ ...form, district: e.target.value, ward: '' })}>
+                        <option value="">Select district</option>
+                        {districts.map((d) => <option key={d} value={d}>{d}</option>)}
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Ward</Label>
+                      <Select value={form.ward} onChange={(e) => {
+                        const ward = e.target.value;
+                        const postcode = ward ? getPostcode(ward) : '';
+                        setForm({ ...form, ward, ...(postcode ? { postalCode: postcode } : {}) });
+                      }}>
+                        <option value="">Select ward</option>
+                        {wards.map((w) => <option key={w} value={w}>{w}</option>)}
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Postcode *</Label>
+                      <Input required pattern="[0-9]{5}" value={form.postalCode} onChange={(e) => setForm({ ...form, postalCode: e.target.value })} />
+                    </div>
                   </div>
-                )}
-                <div>
-                  <Label>Region</Label>
-                  <Select value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value, district: '', ward: '' })}>
-                    <option value="">Select region</option>
-                    {regions.map((r) => <option key={r} value={r}>{r}</option>)}
-                  </Select>
                 </div>
+
                 <div>
-                  <Label>District</Label>
-                  <Select value={form.district} onChange={(e) => setForm({ ...form, district: e.target.value, ward: '' })}>
-                    <option value="">Select district</option>
-                    {districts.map((d) => <option key={d} value={d}>{d}</option>)}
-                  </Select>
-                </div>
-                <div>
-                  <Label>Ward</Label>
-                  <Select value={form.ward} onChange={(e) => {
-                    const ward = e.target.value;
-                    const postcode = ward ? getPostcode(ward) : '';
-                    setForm({ ...form, ward, ...(postcode ? { postalCode: postcode } : {}) });
-                  }}>
-                    <option value="">Select ward</option>
-                    {wards.map((w) => <option key={w} value={w}>{w}</option>)}
-                  </Select>
-                </div>
-                <div>
-                  <Label>Postcode *</Label>
-                  <Input required pattern="[0-9]{5}" value={form.postalCode} onChange={(e) => setForm({ ...form, postalCode: e.target.value })} />
-                </div>
-                <div>
-                  <Label>Contact Mobile *</Label>
-                  <Input required value={form.contactPhone} onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} />
-                </div>
-                <div>
-                  <Label>Contact Email *</Label>
-                  <Input required type="email" value={form.contactEmail} onChange={(e) => setForm({ ...form, contactEmail: e.target.value })} />
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contact Details</h3>
+                  <Separator className="mb-3 mt-1.5" />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <Label>Contact Mobile *</Label>
+                      <Input required value={form.contactPhone} onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} />
+                    </div>
+                    <div>
+                      <Label>Contact Email *</Label>
+                      <Input required type="email" value={form.contactEmail} onChange={(e) => setForm({ ...form, contactEmail: e.target.value })} />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
             {step === 2 && (
-              <div className="grid gap-3 max-w-md">
+              <div className="grid max-w-md gap-3">
                 <div>
                   <Label>Account Number *</Label>
                   <Input required minLength={10} value={form.accountNumber} onChange={(e) => setForm({ ...form, accountNumber: e.target.value })} />
@@ -343,7 +447,47 @@ export function OnboardingWizard() {
             {step === 3 && (
               <div className="space-y-3">
                 <Label>KYC ID Document *</Label>
-                <Input type="file" accept=".pdf,.jpg,.png" required onChange={(e) => setForm({ ...form, kycFile: e.target.files?.[0] ?? null })} />
+                <label
+                  htmlFor="kyc-file"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragging(true);
+                  }}
+                  onDragLeave={() => setDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragging(false);
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) setForm({ ...form, kycFile: file });
+                  }}
+                  className={cn(
+                    'dropzone flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-8 text-center',
+                    dragging && 'is-dragging',
+                  )}
+                >
+                  <UploadCloud className="h-8 w-8 text-muted-foreground" />
+                  <p className="text-sm font-medium">Click to upload or drag and drop</p>
+                  <p className="text-xs text-muted-foreground">PDF, JPG or PNG</p>
+                  <input
+                    id="kyc-file"
+                    type="file"
+                    accept=".pdf,.jpg,.png"
+                    className="hidden"
+                    onChange={(e) => setForm({ ...form, kycFile: e.target.files?.[0] ?? null })}
+                  />
+                </label>
+                {form.kycFile && (
+                  <div className="flex items-center justify-between rounded-md border border-border bg-muted/40 px-3 py-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">{form.kycFile.name}</span>
+                      <span className="text-xs text-muted-foreground">({formatFileSize(form.kycFile.size)})</span>
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setForm({ ...form, kycFile: null })}>
+                      Remove
+                    </Button>
+                  </div>
+                )}
                 <p className="text-sm text-muted-foreground">
                   {onboardingType === 'SCHOOL' || entityType === 'COMPANY'
                     ? 'TIN certificate and business license are also required — upload ID first, then add others from the detail page.'
@@ -353,15 +497,21 @@ export function OnboardingWizard() {
             )}
 
             {step === 4 && (
-              <dl className="grid gap-2 text-sm sm:grid-cols-2">
-                <div><dt className="text-muted-foreground">Type</dt><dd>{onboardingType}</dd></div>
-                <div><dt className="text-muted-foreground">Name</dt><dd>{form.legalName}</dd></div>
-                <div><dt className="text-muted-foreground">Trading</dt><dd>{form.tradingName}</dd></div>
-                <div><dt className="text-muted-foreground">TIN</dt><dd>{form.taxId || '—'}</dd></div>
-                <div><dt className="text-muted-foreground">Bank</dt><dd>{formatBankDisplay(form.bankCode)}</dd></div>
-                <div><dt className="text-muted-foreground">Account</dt><dd className="font-mono">{form.accountNumber}</dd></div>
-                <div><dt className="text-muted-foreground">KYC</dt><dd>{form.kycFile?.name ?? '—'}</dd></div>
-              </dl>
+              <div className="space-y-4">
+                <ReviewSection title="Business Identity" onEdit={() => setStep(1)}>
+                  <ReviewRow label="Type" value={onboardingType} />
+                  <ReviewRow label="Legal Name" value={form.legalName} />
+                  <ReviewRow label="Trading Name" value={form.tradingName} />
+                  <ReviewRow label="TIN" value={form.taxId || '—'} />
+                </ReviewSection>
+                <ReviewSection title="Settlement" onEdit={() => setStep(2)}>
+                  <ReviewRow label="Bank" value={formatBankDisplay(form.bankCode)} />
+                  <ReviewRow label="Account Number" value={form.accountNumber} mono />
+                </ReviewSection>
+                <ReviewSection title="KYC" onEdit={() => setStep(3)}>
+                  <ReviewRow label="Document" value={form.kycFile?.name ?? '—'} />
+                </ReviewSection>
+              </div>
             )}
           </CardContent>
         </Card>
