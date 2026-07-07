@@ -26,23 +26,25 @@
   --accent-foreground: var(--brand-white);
   --accent-muted: color-mix(in srgb, var(--brand-yellow) 18%, var(--brand-white));
 
-  /* Semantic status — derived from logo palette only */
-  --success: var(--brand-black);
-  --success-muted: var(--accent-muted);
-  --success-border: color-mix(in srgb, var(--brand-yellow) 55%, var(--brand-black));
+  /* Semantic status — real color-coding so success/pending/failed are
+     distinguishable at a glance, independent of the black/gold brand chrome */
+  --success: #1f9254;
+  --success-muted: #e7f6ec;
+  --success-border: color-mix(in srgb, #1f9254 35%, white);
 
-  --warning: var(--brand-black);
-  --warning-muted: var(--brand-yellow);
-  --warning-border: color-mix(in srgb, var(--brand-black) 22%, var(--brand-yellow));
+  --warning: #b8790a;
+  --warning-muted: #fdf1d8;
+  --warning-border: color-mix(in srgb, #b8790a 35%, white);
 
-  --destructive: var(--brand-black);
+  --destructive: #d64545;
   --destructive-foreground: var(--brand-white);
-  --destructive-muted: color-mix(in srgb, var(--brand-black) 6%, var(--brand-white));
-  --destructive-border: var(--brand-black);
+  --destructive-muted: #fbe8e8;
+  --destructive-border: color-mix(in srgb, #d64545 35%, white);
 
-  --info: var(--brand-black);
-  --info-muted: color-mix(in srgb, var(--brand-black) 6%, var(--brand-white));
-  --info-border: var(--border);
+  /* Dormant/neutral status reuses the "info" slot */
+  --info: #6b6c74;
+  --info-muted: #f0f0f2;
+  --info-border: color-mix(in srgb, #6b6c74 35%, white);
 
   /* Sidebar = logo black field */
   --sidebar: var(--brand-black);

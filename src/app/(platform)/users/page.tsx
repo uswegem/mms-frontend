@@ -240,6 +240,12 @@ export default function UsersPage() {
         <CardContent className="p-0">
           {usersQuery.isLoading ? (
             <p className="p-6 text-sm text-muted-foreground">Loading users…</p>
+          ) : usersQuery.isError ? (
+            <p className="p-6 text-sm text-[var(--destructive)]">
+              Failed to load users. Please try refreshing.
+            </p>
+          ) : users.length === 0 ? (
+            <p className="p-6 text-sm text-muted-foreground">No users found.</p>
           ) : (
             <Table>
               <TableHeader>

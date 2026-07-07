@@ -158,6 +158,7 @@ export const NAV_SECTIONS: NavSection[] = [
         label: 'Notifications',
         href: '/notifications',
         icon: Bell,
+        permission: 'user:read',
         badge: 'Soon',
       },
       {
@@ -173,6 +174,7 @@ export const NAV_SECTIONS: NavSection[] = [
         label: 'System Monitoring',
         href: '/monitoring',
         icon: Activity,
+        permission: 'user:read',
         badge: 'Soon',
       },
     ],

@@ -80,7 +80,19 @@ export default function ApprovalsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tasks.length === 0 ? (
+              {query.isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                    Loading approval tasks…
+                  </TableCell>
+                </TableRow>
+              ) : query.isError ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-8 text-center text-[var(--destructive)]">
+                    Failed to load approval tasks. Please try refreshing.
+                  </TableCell>
+                </TableRow>
+              ) : tasks.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
                     No pending approval tasks.

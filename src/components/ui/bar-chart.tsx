@@ -34,7 +34,7 @@ export function BarChart({
       >
         {data.map((d, i) => {
           const isHighlight = highlightLast && i === data.length - 2;
-          const barH = Math.max((d.value / max) * 100, 3);
+          const barH = Math.max((d.value / max) * height, 6);
           return (
             <div key={d.label} className="group flex flex-1 flex-col items-center">
               <span className="mb-1 text-[10px] font-medium text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
@@ -43,10 +43,9 @@ export function BarChart({
               <div
                 className="w-full max-w-[48px] rounded-t-md transition-all duration-300 group-hover:opacity-100"
                 style={{
-                  height: `${barH}%`,
+                  height: `${barH}px`,
                   backgroundColor: isHighlight ? 'var(--brand-black)' : color,
                   opacity: isHighlight ? 1 : 0.7,
-                  minHeight: 6,
                 }}
                 title={`${d.label}: ${d.value}`}
               />

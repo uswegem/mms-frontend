@@ -8,6 +8,7 @@ import {
   ArrowRight,
   Building2,
   Check,
+  CheckCircle2,
   ClipboardCheck,
   FileText,
   GraduationCap,
@@ -44,6 +45,14 @@ import { StepProgress, type StepProgressItem } from '@/components/onboarding/ste
 
 const WIZARD_STEPS = ['Type', 'Profile', 'Settlement', 'KYC', 'Review'] as const;
 const STEP_ICONS = [Building2, FileText, Landmark, ShieldCheck, ClipboardCheck];
+
+const NEXT_STEPS_TIMELINE = [
+  'KYC document review by an onboarding checker',
+  'Risk & AML screening',
+  'Bank settlement account validation',
+  'TIPS registration and QR / Lipa Namba issuance',
+  'Final activation',
+];
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -82,6 +91,65 @@ function ReviewRow({ label, value, mono }: { label: string; value: string; mono?
   );
 }
 
+interface ValidatedFieldProps {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  touched: boolean;
+  onTouch: () => void;
+  error: string | null;
+  type?: string;
+  required?: boolean;
+  pattern?: string;
+  minLength?: number;
+  className?: string;
+}
+
+function ValidatedField({
+  label,
+  value,
+  onChange,
+  touched,
+  onTouch,
+  error,
+  type = 'text',
+  required,
+  pattern,
+  minLength,
+  className,
+}: ValidatedFieldProps) {
+  const showError = touched && !!error;
+  const showValid = touched && !error && value.trim() !== '';
+  return (
+    <div className={className}>
+      <Label>
+        {label}
+        {required && ' *'}
+      </Label>
+      <div className="relative">
+        <Input
+          type={type}
+          required={required}
+          pattern={pattern}
+          minLength={minLength}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={onTouch}
+          className={cn(
+            'pr-9',
+            showError && 'border-[var(--destructive)] focus-visible:ring-[var(--destructive)]',
+            showValid && 'border-[var(--success)] focus-visible:ring-[var(--success)]',
+          )}
+        />
+        {showValid && (
+          <CheckCircle2 className="absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--success)]" />
+        )}
+      </div>
+      {showError && <p className="mt-1 text-xs text-[var(--destructive)]">{error}</p>}
+    </div>
+  );
+}
+
 export function OnboardingWizard() {
   const router = useRouter();
   const { accessToken } = useAuth();
@@ -91,6 +159,8 @@ export function OnboardingWizard() {
   const [onboardingType, setOnboardingType] = useState<'MERCHANT' | 'SCHOOL'>('MERCHANT');
   const [entityType, setEntityType] = useState<'SOLE_PROPRIETOR' | 'COMPANY'>('SOLE_PROPRIETOR');
   const [dragging, setDragging] = useState(false);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submittedApp, setSubmittedApp] = useState<OnboardingApplication | null>(null);
   const [form, setForm] = useState({
     legalName: '',
     tradingName: '',
@@ -119,6 +189,41 @@ export function OnboardingWizard() {
   );
 
   const token = accessToken!;
+
+  const touch = (name: string) => setTouched((t) => ({ ...t, [name]: true }));
+
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.contactEmail);
+  const mccValid = /^[0-9]{4}$/.test(form.mcc);
+  const postcodeValid = /^[0-9]{5}$/.test(form.postalCode);
+
+  const fieldErrors = {
+    legalName: form.legalName.trim() ? null : 'Legal name is required',
+    tradingName: form.tradingName.trim() ? null : 'Trading name is required',
+    mcc: onboardingType === 'MERCHANT' ? (mccValid ? null : 'MCC must be 4 digits') : null,
+    companyRegistrationNo:
+      onboardingType === 'SCHOOL' && !form.companyRegistrationNo.trim()
+        ? 'School registration number is required'
+        : null,
+    postalCode: postcodeValid ? null : 'Postcode must be 5 digits',
+    contactPhone: form.contactPhone.trim() ? null : 'Contact mobile is required',
+    contactEmail: emailValid ? null : 'Enter a valid email address',
+    accountNumber:
+      form.accountNumber.trim().length >= 10 ? null : 'Account number must be at least 10 characters',
+    accountName: form.accountName.trim() ? null : 'Account name is required',
+  };
+
+  const step1Valid =
+    !fieldErrors.legalName &&
+    !fieldErrors.tradingName &&
+    !fieldErrors.mcc &&
+    !fieldErrors.companyRegistrationNo &&
+    !fieldErrors.postalCode &&
+    !fieldErrors.contactPhone &&
+    !fieldErrors.contactEmail;
+  const step2Valid = !fieldErrors.accountNumber && !fieldErrors.accountName;
+  const step3Valid = !!form.kycFile;
+  const currentStepValid =
+    step === 1 ? step1Valid : step === 2 ? step2Valid : step === 3 ? step3Valid : true;
 
   const stepItems: StepProgressItem[] = WIZARD_STEPS.map((label, i) => {
     const Icon = STEP_ICONS[i];
@@ -237,8 +342,8 @@ export function OnboardingWizard() {
       }
       if (step === 4) {
         const id = await ensureApplication();
-        await submitOnboarding(token, id);
-        router.push(`/onboarding/${id}`);
+        const app = await submitOnboarding(token, id);
+        setSubmittedApp(app);
         return;
       }
       setStep((s) => Math.min(s + 1, WIZARD_STEPS.length - 1));
@@ -247,11 +352,54 @@ export function OnboardingWizard() {
     }
   }
 
+  if (submittedApp) {
+    return (
+      <div className="mx-auto max-w-xl space-y-6 py-12 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--success-muted)]">
+          <CheckCircle2 className="h-8 w-8 text-[var(--success)]" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-semibold">Application Submitted</h2>
+          <p className="mt-1 text-muted-foreground">
+            Application{' '}
+            <span className="font-mono font-medium text-foreground">{submittedApp.applicationNo}</span>{' '}
+            has been sent for checker review.
+          </p>
+        </div>
+        <Card className="text-left shadow-[var(--shadow-sm)]">
+          <CardHeader>
+            <CardTitle className="text-sm">What happens next</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ol className="space-y-4">
+              {NEXT_STEPS_TIMELINE.map((item, i) => (
+                <li key={item} className="flex gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-[var(--brand-yellow)] text-xs font-semibold">
+                    {i + 1}
+                  </span>
+                  <span className="pt-0.5 text-sm">{item}</span>
+                </li>
+              ))}
+            </ol>
+          </CardContent>
+        </Card>
+        <div className="flex justify-center gap-3">
+          <Button variant="outline" className="h-11" onClick={() => router.push('/onboarding')}>
+            Back to List
+          </Button>
+          <Button className="h-11" onClick={() => router.push(`/onboarding/${submittedApp.id}`)}>
+            View Application
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center gap-3">
         <Link href="/onboarding">
-          <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" className="h-11 w-11"><ArrowLeft className="h-4 w-4" /></Button>
         </Link>
         <PageHeader title="New Onboarding" description={`Step ${step + 1} of ${WIZARD_STEPS.length}: ${WIZARD_STEPS[step]}`} />
       </div>
@@ -339,19 +487,37 @@ export function OnboardingWizard() {
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Business Identity</h3>
                   <Separator className="mb-3 mt-1.5" />
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="sm:col-span-2">
-                      <Label>Legal Name *</Label>
-                      <Input required value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} />
-                    </div>
-                    <div className="sm:col-span-2">
-                      <Label>Trading / Display Name *</Label>
-                      <Input required value={form.tradingName} onChange={(e) => setForm({ ...form, tradingName: e.target.value })} />
-                    </div>
+                    <ValidatedField
+                      className="sm:col-span-2"
+                      label="Legal Name"
+                      required
+                      value={form.legalName}
+                      onChange={(v) => setForm({ ...form, legalName: v })}
+                      touched={!!touched.legalName}
+                      onTouch={() => touch('legalName')}
+                      error={fieldErrors.legalName}
+                    />
+                    <ValidatedField
+                      className="sm:col-span-2"
+                      label="Trading / Display Name"
+                      required
+                      value={form.tradingName}
+                      onChange={(v) => setForm({ ...form, tradingName: v })}
+                      touched={!!touched.tradingName}
+                      onTouch={() => touch('tradingName')}
+                      error={fieldErrors.tradingName}
+                    />
                     {onboardingType === 'MERCHANT' && (
-                      <div>
-                        <Label>MCC *</Label>
-                        <Input required pattern="[0-9]{4}" value={form.mcc} onChange={(e) => setForm({ ...form, mcc: e.target.value })} />
-                      </div>
+                      <ValidatedField
+                        label="MCC"
+                        required
+                        pattern="[0-9]{4}"
+                        value={form.mcc}
+                        onChange={(v) => setForm({ ...form, mcc: v })}
+                        touched={!!touched.mcc}
+                        onTouch={() => touch('mcc')}
+                        error={fieldErrors.mcc}
+                      />
                     )}
                     <div>
                       <Label>TIN</Label>
@@ -361,10 +527,15 @@ export function OnboardingWizard() {
                       <Label>VRN</Label>
                       <Input value={form.vrn} onChange={(e) => setForm({ ...form, vrn: e.target.value })} />
                     </div>
-                    <div>
-                      <Label>{onboardingType === 'SCHOOL' ? 'School Registration No *' : 'Business Registration No'}</Label>
-                      <Input required={onboardingType === 'SCHOOL'} value={form.companyRegistrationNo} onChange={(e) => setForm({ ...form, companyRegistrationNo: e.target.value })} />
-                    </div>
+                    <ValidatedField
+                      label={onboardingType === 'SCHOOL' ? 'School Registration No' : 'Business Registration No'}
+                      required={onboardingType === 'SCHOOL'}
+                      value={form.companyRegistrationNo}
+                      onChange={(v) => setForm({ ...form, companyRegistrationNo: v })}
+                      touched={!!touched.companyRegistrationNo}
+                      onTouch={() => touch('companyRegistrationNo')}
+                      error={fieldErrors.companyRegistrationNo}
+                    />
                     {onboardingType === 'SCHOOL' && (
                       <div>
                         <Label>Principal / Head Name</Label>
@@ -403,10 +574,16 @@ export function OnboardingWizard() {
                         {wards.map((w) => <option key={w} value={w}>{w}</option>)}
                       </Select>
                     </div>
-                    <div>
-                      <Label>Postcode *</Label>
-                      <Input required pattern="[0-9]{5}" value={form.postalCode} onChange={(e) => setForm({ ...form, postalCode: e.target.value })} />
-                    </div>
+                    <ValidatedField
+                      label="Postcode"
+                      required
+                      pattern="[0-9]{5}"
+                      value={form.postalCode}
+                      onChange={(v) => setForm({ ...form, postalCode: v })}
+                      touched={!!touched.postalCode}
+                      onTouch={() => touch('postalCode')}
+                      error={fieldErrors.postalCode}
+                    />
                   </div>
                 </div>
 
@@ -414,14 +591,25 @@ export function OnboardingWizard() {
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contact Details</h3>
                   <Separator className="mb-3 mt-1.5" />
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <div>
-                      <Label>Contact Mobile *</Label>
-                      <Input required value={form.contactPhone} onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} />
-                    </div>
-                    <div>
-                      <Label>Contact Email *</Label>
-                      <Input required type="email" value={form.contactEmail} onChange={(e) => setForm({ ...form, contactEmail: e.target.value })} />
-                    </div>
+                    <ValidatedField
+                      label="Contact Mobile"
+                      required
+                      value={form.contactPhone}
+                      onChange={(v) => setForm({ ...form, contactPhone: v })}
+                      touched={!!touched.contactPhone}
+                      onTouch={() => touch('contactPhone')}
+                      error={fieldErrors.contactPhone}
+                    />
+                    <ValidatedField
+                      label="Contact Email"
+                      required
+                      type="email"
+                      value={form.contactEmail}
+                      onChange={(v) => setForm({ ...form, contactEmail: v })}
+                      touched={!!touched.contactEmail}
+                      onTouch={() => touch('contactEmail')}
+                      error={fieldErrors.contactEmail}
+                    />
                   </div>
                 </div>
               </div>
@@ -429,14 +617,25 @@ export function OnboardingWizard() {
 
             {step === 2 && (
               <div className="grid max-w-md gap-3">
-                <div>
-                  <Label>Account Number *</Label>
-                  <Input required minLength={10} value={form.accountNumber} onChange={(e) => setForm({ ...form, accountNumber: e.target.value })} />
-                </div>
-                <div>
-                  <Label>Account Name *</Label>
-                  <Input required value={form.accountName} onChange={(e) => setForm({ ...form, accountName: e.target.value })} />
-                </div>
+                <ValidatedField
+                  label="Account Number"
+                  required
+                  minLength={10}
+                  value={form.accountNumber}
+                  onChange={(v) => setForm({ ...form, accountNumber: v })}
+                  touched={!!touched.accountNumber}
+                  onTouch={() => touch('accountNumber')}
+                  error={fieldErrors.accountNumber}
+                />
+                <ValidatedField
+                  label="Account Name"
+                  required
+                  value={form.accountName}
+                  onChange={(v) => setForm({ ...form, accountName: v })}
+                  touched={!!touched.accountName}
+                  onTouch={() => touch('accountName')}
+                  error={fieldErrors.accountName}
+                />
                 <BankSelectField
                   value={form.bankCode}
                   onChange={(swiftCode) => setForm({ ...form, bankCode: swiftCode })}
@@ -461,7 +660,7 @@ export function OnboardingWizard() {
                     if (file) setForm({ ...form, kycFile: file });
                   }}
                   className={cn(
-                    'dropzone flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-8 text-center',
+                    'dropzone flex min-h-[44px] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-8 text-center',
                     dragging && 'is-dragging',
                   )}
                 >
@@ -477,13 +676,14 @@ export function OnboardingWizard() {
                   />
                 </label>
                 {form.kycFile && (
-                  <div className="flex items-center justify-between rounded-md border border-border bg-muted/40 px-3 py-2">
+                  <div className="flex items-center justify-between rounded-md border border-[var(--success-border)] bg-[var(--success-muted)] px-3 py-2">
                     <div className="flex items-center gap-2 text-sm">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <FileText className="h-4 w-4 text-[var(--success)]" />
                       <span className="font-medium">{form.kycFile.name}</span>
                       <span className="text-xs text-muted-foreground">({formatFileSize(form.kycFile.size)})</span>
+                      <CheckCircle2 className="h-4 w-4 text-[var(--success)]" />
                     </div>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => setForm({ ...form, kycFile: null })}>
+                    <Button type="button" variant="ghost" size="sm" className="h-11" onClick={() => setForm({ ...form, kycFile: null })}>
                       Remove
                     </Button>
                   </div>
@@ -519,18 +719,18 @@ export function OnboardingWizard() {
         <div className="mt-4 flex flex-wrap justify-between gap-2">
           <div className="flex gap-2">
             {step > 0 && (
-              <Button type="button" variant="outline" onClick={() => setStep((s) => s - 1)}>
+              <Button type="button" variant="outline" className="h-11" onClick={() => setStep((s) => s - 1)}>
                 <ArrowLeft className="mr-1 h-4 w-4" /> Back
               </Button>
             )}
             {applicationId && step < 4 && (
-              <Button type="button" variant="ghost" onClick={() => void saveDraft()}>
+              <Button type="button" variant="ghost" className="h-11" onClick={() => void saveDraft()}>
                 <Save className="mr-1 h-4 w-4" /> Save Draft
               </Button>
             )}
           </div>
-          <Button type="submit">
-            {step === 4 ? 'Submit for Approval' : 'Next'}
+          <Button type="submit" className="h-11" disabled={!currentStepValid}>
+            {step === 4 ? 'Submit Application' : 'Next'}
             {step < 4 && <ArrowRight className="ml-1 h-4 w-4" />}
           </Button>
         </div>

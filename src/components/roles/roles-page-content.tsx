@@ -257,6 +257,15 @@ export function RolesPageContent() {
                 <CardTitle className="text-base">Role Directory</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
+                {rolesQuery.isLoading ? (
+                  <p className="p-6 text-sm text-muted-foreground">Loading roles…</p>
+                ) : rolesQuery.isError ? (
+                  <p className="p-6 text-sm text-[var(--destructive)]">
+                    Failed to load roles. Please try refreshing.
+                  </p>
+                ) : roles.length === 0 ? (
+                  <p className="p-6 text-sm text-muted-foreground">No roles found.</p>
+                ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -283,6 +292,7 @@ export function RolesPageContent() {
                     ))}
                   </TableBody>
                 </Table>
+                )}
               </CardContent>
             </Card>
 

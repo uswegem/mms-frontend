@@ -291,11 +291,11 @@ export function OnboardingPageContent() {
           {query.isLoading && (
             <p className="p-6 text-sm text-muted-foreground">Loading applications…</p>
           )}
-          {!query.isLoading && apps.length === 0 && (
-            <p className="p-6 text-sm text-muted-foreground">No onboarding applications found.</p>
-          )}
           {query.isError && (
             <p className="p-6 text-sm text-destructive">Failed to load applications.</p>
+          )}
+          {!query.isLoading && !query.isError && apps.length === 0 && (
+            <p className="p-6 text-sm text-muted-foreground">No onboarding applications found.</p>
           )}
           {apps.length > 0 && (
           <Table>

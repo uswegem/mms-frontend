@@ -264,6 +264,10 @@ export function MerchantsPageContent() {
         <CardContent className="p-0">
           {merchantsQuery.isLoading ? (
             <p className="p-6 text-sm text-muted-foreground">Loading merchants…</p>
+          ) : merchantsQuery.isError ? (
+            <p className="p-6 text-sm text-[var(--destructive)]">
+              Failed to load merchants. Please try refreshing.
+            </p>
           ) : merchants.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
               No merchants found. Try adjusting your search or filters.
