@@ -72,6 +72,10 @@ export interface Merchant {
   kyc: MerchantKyc | null;
   createdAt: string;
   updatedAt: string;
+  pendingStatusAction: string | null;
+  pendingStatusReason: string | null;
+  pendingStatusRequestedBy: string | null;
+  pendingStatusRequestedAt: string | null;
 }
 
 export interface MerchantDocument {
@@ -190,41 +194,6 @@ export async function updateMerchant(
   return res.json();
 }
 
-export async function suspendMerchant(
-  token: string,
-  id: string,
-): Promise<Merchant> {
-  const res = await fetch(`${API_BASE}/merchants/${id}/suspend`, {
-    method: 'POST',
-    headers: authHeaders(token),
-  });
-  if (!res.ok) throw await parseError(res);
-  return res.json();
-}
-
-export async function activateMerchant(
-  token: string,
-  id: string,
-): Promise<Merchant> {
-  const res = await fetch(`${API_BASE}/merchants/${id}/activate`, {
-    method: 'POST',
-    headers: authHeaders(token),
-  });
-  if (!res.ok) throw await parseError(res);
-  return res.json();
-}
-
-export async function dormantMerchant(
-  token: string,
-  id: string,
-): Promise<Merchant> {
-  const res = await fetch(`${API_BASE}/merchants/${id}/dormant`, {
-    method: 'POST',
-    headers: authHeaders(token),
-  });
-  if (!res.ok) throw await parseError(res);
-  return res.json();
-}
 
 export async function addKycDocument(
   token: string,

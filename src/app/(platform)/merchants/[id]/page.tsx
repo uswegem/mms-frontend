@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   Building2,
+  Clock,
   FileText,
   QrCode,
   School,
@@ -21,7 +22,7 @@ import { Alert } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MerchantEditForm } from '@/components/merchants/merchant-edit-form';
 import { MerchantKycPanel } from '@/components/merchants/merchant-kyc-panel';
-import { MerchantStatusPanel } from '@/components/merchants/merchant-status-panel';
+import { MerchantActivityLogPanel } from '@/components/merchants/merchant-activity-log-panel';
 import { MerchantQrTab, useMerchantQrSummary } from '@/components/merchants/qr/merchant-qr-tab';
 import { SchoolStudentsPanel } from '@/components/schools/school-students-panel';
 import { getMerchant } from '@/lib/merchants-api';
@@ -43,8 +44,7 @@ export default function MerchantDetailPage({
   const canWrite = user?.permissions?.includes('merchant:write');
   const canKycWrite = user?.permissions?.includes('merchant:kyc:write');
   const canKycReview = user?.permissions?.includes('merchant:kyc:review');
-  const canSuspend = user?.permissions?.includes('merchant:suspend');
-  const canStatusRead = user?.permissions?.includes('merchant:read');
+  const canActivityRead = user?.permissions?.includes('merchant:read');
 
   const merchantQuery = useQuery({
     queryKey: ['merchant', id],
@@ -102,6 +102,20 @@ export default function MerchantDetailPage({
           {success}
         </Alert>
       )}
+      {merchant.pendingStatusAction && (
+        <Alert variant="warning">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 shrink-0" />
+            <span>
+              A <strong>{merchant.pendingStatusAction}</strong> request is pending checker
+              approval.{' '}
+              <Link href="/approvals" className="underline">
+                View in Checker Inbox →
+              </Link>
+            </span>
+          </div>
+        </Alert>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -151,14 +165,14 @@ export default function MerchantDetailPage({
       <Tabs defaultValue={initialTab} key={initialTab}>
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="kyc">KYC</TabsTrigger>
-          <TabsTrigger value="status">Status</TabsTrigger>
+          <TabsTrigger value="kyc">Documents</TabsTrigger>
           {merchant.isSchool && (
             <TabsTrigger value="students">Students</TabsTrigger>
           )}
           <TabsTrigger value="qr">QR Codes</TabsTrigger>
           <TabsTrigger value="settlement">Settlement</TabsTrigger>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
+          <TabsTrigger value="activity">Activity Log</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-4">
@@ -214,20 +228,6 @@ export default function MerchantDetailPage({
           />
         </TabsContent>
 
-        <TabsContent value="status">
-          {canStatusRead ? (
-            <MerchantStatusPanel
-              merchant={merchant}
-              token={token}
-              onUpdated={refreshMerchant}
-              onError={(msg) => setError(msg)}
-              onSuccess={(msg) => setSuccess(msg)}
-            />
-          ) : (
-            <p className="text-sm text-muted-foreground">You do not have permission to view status management.</p>
-          )}
-        </TabsContent>
-
         {merchant.isSchool && (
           <TabsContent value="students">
             <SchoolStudentsPanel merchantId={id} />
@@ -270,6 +270,20 @@ export default function MerchantDetailPage({
               </p>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="activity">
+          {canActivityRead ? (
+            <MerchantActivityLogPanel
+              merchantId={id}
+              currentStatus={merchant.status}
+              token={token}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              You do not have permission to view the activity log.
+            </p>
+          )}
         </TabsContent>
       </Tabs>
     </div>

@@ -88,17 +88,24 @@ export const rejectMerchantStatus = (
   notes?: string,
 ) => statusPost(token, id, 'reject', { reason, notes });
 
-export const suspendMerchantStatus = (token: string, id: string, notes?: string) =>
-  statusPost(token, id, 'suspend', { notes });
+export type RequestableStatusAction = 'SUSPEND' | 'REACTIVATE' | 'MARK_DORMANT' | 'CLOSE';
 
-export const reactivateMerchantStatus = (token: string, id: string, notes?: string) =>
-  statusPost(token, id, 'reactivate', { notes });
+export interface RequestStatusChangeInput {
+  action: RequestableStatusAction;
+  reason: string;
+  notes?: string;
+}
 
-export const dormantMerchantStatus = (token: string, id: string, notes?: string) =>
-  statusPost(token, id, 'dormant', { notes });
-
-export const closeMerchantStatus = (token: string, id: string, notes?: string) =>
-  statusPost(token, id, 'close', { notes });
+/**
+ * Requests a status change instead of applying it — creates a maker-checker
+ * approval task. The actual transition only happens once a different user
+ * approves it via the Checker Inbox (/approvals).
+ */
+export const requestStatusChange = (
+  token: string,
+  id: string,
+  body: RequestStatusChangeInput,
+) => statusPost(token, id, 'request', body);
 
 export const STATUS_ACTION_LABELS: Record<StatusAction, string> = {
   SUBMIT_FOR_REVIEW: 'Submit for Review',

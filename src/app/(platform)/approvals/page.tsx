@@ -17,7 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { approveTask, listApprovalTasks, rejectTask } from '@/lib/approvals-api';
+import { approveTask, listApprovalTasks, rejectTask, type ApprovalTask } from '@/lib/approvals-api';
+import { getMerchant } from '@/lib/merchants-api';
 import { formatDateTime } from '@/lib/format';
 
 export default function ApprovalsPage() {
@@ -100,29 +101,17 @@ export default function ApprovalsPage() {
                 </TableRow>
               ) : (
                 tasks.map((task) => (
-                  <TableRow key={task.id}>
-                    <TableCell className="font-mono text-xs">{task.entityId.slice(0, 8)}…</TableCell>
-                    <TableCell>{task.entityType.replace('_', ' ')}</TableCell>
-                    <TableCell>
-                      <Badge variant={statusBadgeVariant(task.status)}>{task.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-xs">{formatDateTime(task.createdAt)}</TableCell>
-                    <TableCell className="text-right space-x-1">
-                      <Link href={`/onboarding/${task.entityId}`}>
-                        <Button variant="ghost" size="sm">View</Button>
-                      </Link>
-                      {canApprove && (
-                        <Button size="sm" onClick={() => run('Approve', () => approveTask(accessToken!, task.id))}>
-                          Approve
-                        </Button>
-                      )}
-                      {canReject && (
-                        <Button variant="destructive" size="sm" onClick={() => run('Reject', () => rejectTask(accessToken!, task.id, 'Rejected by checker'))}>
-                          Reject
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
+                  <ApprovalTaskRow
+                    key={task.id}
+                    task={task}
+                    token={accessToken!}
+                    canApprove={!!canApprove}
+                    canReject={!!canReject}
+                    onApprove={() => run('Approve', () => approveTask(accessToken!, task.id))}
+                    onReject={() =>
+                      run('Reject', () => rejectTask(accessToken!, task.id, 'Rejected by checker'))
+                    }
+                  />
                 ))
               )}
             </TableBody>
@@ -130,5 +119,78 @@ export default function ApprovalsPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function ApprovalTaskRow({
+  task,
+  token,
+  canApprove,
+  canReject,
+  onApprove,
+  onReject,
+}: {
+  task: ApprovalTask;
+  token: string;
+  canApprove: boolean;
+  canReject: boolean;
+  onApprove: () => void;
+  onReject: () => void;
+}) {
+  const isMerchantStatusChange = task.entityType === 'MERCHANT_STATUS_CHANGE';
+  const merchantQuery = useQuery({
+    queryKey: ['approval-task-merchant', task.entityId],
+    queryFn: () => getMerchant(token, task.entityId),
+    enabled: isMerchantStatusChange,
+  });
+  const merchant = merchantQuery.data;
+
+  const viewHref = isMerchantStatusChange
+    ? `/merchants/${task.entityId}`
+    : `/onboarding/${task.entityId}`;
+
+  return (
+    <TableRow>
+      <TableCell className="text-xs">
+        {isMerchantStatusChange ? (
+          merchant ? (
+            <span>
+              <span className="font-medium">{merchant.tradingName}</span>
+              {merchant.pendingStatusAction && (
+                <span className="text-muted-foreground">
+                  {' '}
+                  — {merchant.pendingStatusAction}
+                  {merchant.pendingStatusReason ? `: ${merchant.pendingStatusReason}` : ''}
+                </span>
+              )}
+            </span>
+          ) : (
+            <span className="font-mono">{task.entityId.slice(0, 8)}…</span>
+          )
+        ) : (
+          <span className="font-mono">{task.entityId.slice(0, 8)}…</span>
+        )}
+      </TableCell>
+      <TableCell>{task.entityType.replace(/_/g, ' ')}</TableCell>
+      <TableCell>
+        <Badge variant={statusBadgeVariant(task.status)}>{task.status}</Badge>
+      </TableCell>
+      <TableCell className="text-xs">{formatDateTime(task.createdAt)}</TableCell>
+      <TableCell className="text-right space-x-1">
+        <Link href={viewHref}>
+          <Button variant="ghost" size="sm">View</Button>
+        </Link>
+        {canApprove && (
+          <Button size="sm" onClick={onApprove}>
+            Approve
+          </Button>
+        )}
+        {canReject && (
+          <Button variant="destructive" size="sm" onClick={onReject}>
+            Reject
+          </Button>
+        )}
+      </TableCell>
+    </TableRow>
   );
 }

@@ -1,10 +1,10 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, Plus, Search } from 'lucide-react';
+import { ClipboardCheck, Download, Search } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
@@ -21,21 +21,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  MerchantFormFields,
-  defaultMerchantFormValues,
-  type MerchantFormValues,
-} from '@/components/merchants/merchant-form-fields';
-import { MerchantLifecycleActions } from '@/components/merchants/merchant-lifecycle-actions';
-import {
-  activateMerchant,
-  createMerchant,
-  dormantMerchant,
-  exportMerchantsCsv,
-  listMerchants,
-  MerchantsApiError,
-  suspendMerchant,
-} from '@/lib/merchants-api';
+import { MerchantRowActionsMenu } from '@/components/merchants/merchant-row-actions-menu';
+import { RequestStatusChangeModal } from '@/components/merchants/request-status-change-modal';
+import { exportMerchantsCsv, listMerchants, MerchantsApiError } from '@/lib/merchants-api';
+import { requestStatusChange, type RequestableStatusAction } from '@/lib/merchant-status-api';
 import { formatDate } from '@/lib/format';
 
 const STATUSES = [
@@ -60,11 +49,14 @@ export function MerchantsPageContent() {
   const [searchInput, setSearchInput] = useState(searchParams.get('q') ?? '');
   const [search, setSearch] = useState(searchParams.get('q') ?? '');
   const [statusFilter, setStatusFilter] = useState('');
-  const [showCreate, setShowCreate] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [form, setForm] = useState<MerchantFormValues>(defaultMerchantFormValues);
-  const [creating, setCreating] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    merchantId: string;
+    merchantName: string;
+    action: RequestableStatusAction;
+  } | null>(null);
+  const [submittingAction, setSubmittingAction] = useState(false);
 
   const canRead = user?.permissions?.includes('merchant:read');
   const canWrite = user?.permissions?.includes('merchant:write');
@@ -109,54 +101,6 @@ export function MerchantsPageContent() {
     setError(err instanceof MerchantsApiError ? err.message : 'An unexpected error occurred');
   }
 
-  function handleFormChange(patch: Partial<MerchantFormValues>) {
-    setForm((prev) => ({ ...prev, ...patch }));
-  }
-
-  async function handleCreate(e: FormEvent) {
-    e.preventDefault();
-    setCreating(true);
-    setError(null);
-    setSuccess(null);
-    try {
-      const created = await createMerchant(token, {
-        legalName: form.legalName,
-        tradingName: form.tradingName,
-        mcc: form.mcc,
-        region: form.region,
-        district: form.district,
-        ward: form.ward,
-        postalCode: form.postalCode,
-        taxId: form.taxId || undefined,
-        isSchool: form.isSchool,
-        addressLine1: form.addressLine1 || undefined,
-        addressLine2: form.addressLine2 || undefined,
-        contactPhone: form.contactPhone || undefined,
-        contactEmail: form.contactEmail || undefined,
-      });
-      setSuccess(`Merchant "${created.tradingName}" created in DRAFT status.`);
-      setForm(defaultMerchantFormValues);
-      setShowCreate(false);
-      await queryClient.invalidateQueries({ queryKey: ['merchants'] });
-    } catch (err) {
-      handleApiError(err);
-    } finally {
-      setCreating(false);
-    }
-  }
-
-  async function runAction(label: string, id: string, fn: () => Promise<unknown>) {
-    setError(null);
-    setSuccess(null);
-    try {
-      await fn();
-      setSuccess(`${label} completed.`);
-      await queryClient.invalidateQueries({ queryKey: ['merchants'] });
-    } catch (err) {
-      handleApiError(err);
-    }
-  }
-
   function handleExport() {
     if (merchants.length === 0) {
       setError('No merchants to export on this page.');
@@ -170,13 +114,15 @@ export function MerchantsPageContent() {
     <div className="space-y-6">
       <PageHeader
         title="Merchant Management"
-        description="Create, search, and manage merchant lifecycle and KYC compliance."
+        description="Search and manage merchant lifecycle and KYC compliance."
       >
         {canWrite && (
-          <Button onClick={() => setShowCreate((s) => !s)}>
-            <Plus className="h-4 w-4" />
-            New Merchant
-          </Button>
+          <Link href="/onboarding/new">
+            <Button>
+              <ClipboardCheck className="h-4 w-4" />
+              Start Onboarding
+            </Button>
+          </Link>
         )}
         <Button variant="outline" size="sm" onClick={handleExport}>
           <Download className="h-4 w-4" />
@@ -193,36 +139,6 @@ export function MerchantsPageContent() {
         <Alert variant="success" onDismiss={() => setSuccess(null)}>
           {success}
         </Alert>
-      )}
-
-      {showCreate && canWrite && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Register New Merchant</CardTitle>
-            <CardDescription>
-              Creates a merchant in DRAFT status with KYC pending. Complete KYC on the detail page
-              to activate.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <MerchantFormFields values={form} onChange={handleFormChange} idPrefix="create" />
-              <div className="flex gap-2">
-                <Button type="submit" disabled={creating}>
-                  {creating ? 'Creating…' : 'Create Merchant'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowCreate(false)}
-                  disabled={creating}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
       )}
 
       <Card>
@@ -314,7 +230,7 @@ export function MerchantsPageContent() {
                       {formatDate(m.createdAt)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex w-full items-center justify-end gap-3">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -322,17 +238,11 @@ export function MerchantsPageContent() {
                         >
                           View
                         </Button>
-                        <MerchantLifecycleActions
+                        <MerchantRowActionsMenu
                           merchant={m}
-                          canSuspend={!!canSuspend}
-                          onSuspend={(id) =>
-                            runAction('Suspend', id, () => suspendMerchant(token, id))
-                          }
-                          onActivate={(id) =>
-                            runAction('Activate', id, () => activateMerchant(token, id))
-                          }
-                          onDormant={(id) =>
-                            runAction('Dormant', id, () => dormantMerchant(token, id))
+                          canRequest={!!canSuspend}
+                          onRequestAction={(action) =>
+                            setPendingAction({ merchantId: m.id, merchantName: m.tradingName, action })
                           }
                         />
                       </div>
@@ -367,6 +277,34 @@ export function MerchantsPageContent() {
           )}
         </CardContent>
       </Card>
+
+      <RequestStatusChangeModal
+        open={!!pendingAction}
+        action={pendingAction?.action ?? null}
+        merchantName={pendingAction?.merchantName}
+        loading={submittingAction}
+        onClose={() => setPendingAction(null)}
+        onConfirm={async (reason, notes) => {
+          if (!pendingAction) return;
+          setSubmittingAction(true);
+          setError(null);
+          setSuccess(null);
+          try {
+            await requestStatusChange(token, pendingAction.merchantId, {
+              action: pendingAction.action,
+              reason,
+              notes,
+            });
+            setSuccess('Status change requested — pending checker approval.');
+            await queryClient.invalidateQueries({ queryKey: ['merchants'] });
+            setPendingAction(null);
+          } catch (err) {
+            handleApiError(err);
+          } finally {
+            setSubmittingAction(false);
+          }
+        }}
+      />
     </div>
   );
 }
