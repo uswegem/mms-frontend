@@ -103,7 +103,7 @@ export async function createUser(
     merchantId?: string;
     phone?: string;
   },
-): Promise<{ user: User; temporaryPassword?: string }> {
+): Promise<{ user: User; emailSent?: boolean; temporaryPassword?: string }> {
   const res = await fetch(`${API_BASE}/users`, {
     method: 'POST',
     headers: authHeaders(token),

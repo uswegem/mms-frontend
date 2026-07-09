@@ -86,7 +86,11 @@ export default function UsersPage() {
         fullName: createName,
         roleIds: [createRoleId],
       });
-      setSuccess(`User ${result.user.email} created.`);
+      setSuccess(
+        result.emailSent
+          ? `User ${result.user.email} created. Login credentials were sent to their email.`
+          : `User ${result.user.email} created.`,
+      );
       if (result.temporaryPassword) setTempPassword(result.temporaryPassword);
       setCreateEmail('');
       setCreateName('');
@@ -163,7 +167,9 @@ export default function UsersPage() {
       {success && <Alert variant="success" onDismiss={() => setSuccess(null)}>{success}</Alert>}
       {tempPassword && (
         <Alert variant="warning">
-          Temporary password (dev): <code className="font-mono">{tempPassword}</code>
+          Email could not be sent. Temporary password (dev):{' '}
+          <code className="font-mono">{tempPassword}</code>. Share it with the user now, or ask
+          them to use Forgot password on the login page to set a new one.
         </Alert>
       )}
       {inviteToken && (
