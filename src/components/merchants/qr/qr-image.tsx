@@ -13,6 +13,8 @@ interface QrImageProps {
   alt?: string;
   size?: number;
   className?: string;
+  /** `display` removes card chrome for TANQR Annex 2 layout embedding */
+  variant?: 'default' | 'display';
 }
 
 export function QrImage({
@@ -21,6 +23,7 @@ export function QrImage({
   alt = 'TANQR code',
   size = 240,
   className,
+  variant = 'default',
 }: QrImageProps) {
   const [src, setSrc] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,7 +96,12 @@ export function QrImage({
       alt={alt}
       width={size}
       height={size}
-      className={cn('rounded-md border border-border bg-white p-2', className)}
+      className={cn(
+        variant === 'display'
+          ? 'bg-white shadow-md'
+          : 'rounded-md border border-border bg-white p-2',
+        className,
+      )}
     />
   );
 }
