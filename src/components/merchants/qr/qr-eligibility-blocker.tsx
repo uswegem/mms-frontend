@@ -10,6 +10,7 @@ import type { Merchant } from '@/lib/merchants-api';
 interface QrEligibilityBlockerProps {
   merchant: Merchant;
   eligibility?: MerchantQrEligibility;
+  statusBlocked?: boolean;
   onRefresh: () => void;
 }
 
@@ -41,19 +42,30 @@ function CheckItem({
 export function QrEligibilityBlocker({
   merchant,
   eligibility,
+  statusBlocked = false,
   onRefresh,
 }: QrEligibilityBlockerProps) {
   const kycStatus = merchant.kyc?.status ?? 'PENDING';
   const kycApproved = eligibility?.kyc_approved ?? kycStatus === 'APPROVED';
+  const missingAlias = eligibility && !eligibility.alias_available;
 
   return (
     <Card className="border-[color-mix(in_srgb,var(--brand-yellow)_35%,transparent)]">
       <CardHeader>
         <CardTitle className="text-base">QR generation is not available yet</CardTitle>
         <CardDescription>
-          This merchant must be approved and activated before TANQR QR codes can be issued.
-          {merchant.status === 'PENDING_REVIEW' && (
-            <> QR generation is blocked until merchant approval is completed.</>
+          {missingAlias && !statusBlocked ? (
+            <>
+              This merchant is active but does not have a Lipa Namba alias yet. Complete TIPS
+              registration and alias issuance via onboarding before generating TANQR codes.
+            </>
+          ) : (
+            <>
+              This merchant must be approved and activated before TANQR QR codes can be issued.
+              {merchant.status === 'PENDING_REVIEW' && (
+                <> QR generation is blocked until merchant approval is completed.</>
+              )}
+            </>
           )}
         </CardDescription>
       </CardHeader>
@@ -83,16 +95,27 @@ export function QrEligibilityBlocker({
           />
         </ul>
         <div className="flex flex-wrap gap-2">
-          <Link href={`/merchants/${merchant.id}?tab=kyc`}>
-            <Button variant="outline" size="sm">
-              View KYC
-            </Button>
-          </Link>
-          <Link href={`/merchants/${merchant.id}?tab=status`}>
-            <Button variant="outline" size="sm">
-              View Status
-            </Button>
-          </Link>
+          {!missingAlias && (
+            <>
+              <Link href={`/merchants/${merchant.id}?tab=kyc`}>
+                <Button variant="outline" size="sm">
+                  View KYC
+                </Button>
+              </Link>
+              <Link href={`/merchants/${merchant.id}?tab=status`}>
+                <Button variant="outline" size="sm">
+                  View Status
+                </Button>
+              </Link>
+            </>
+          )}
+          {missingAlias && (
+            <Link href="/onboarding">
+              <Button variant="outline" size="sm">
+                Go to onboarding
+              </Button>
+            </Link>
+          )}
           <Button variant="ghost" size="sm" onClick={onRefresh}>
             Refresh
           </Button>
