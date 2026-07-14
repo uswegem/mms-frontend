@@ -51,7 +51,7 @@ export function BrandLogo({
         height={height}
         priority
         className={cn('h-auto w-auto object-contain', imageClassName)}
-        style={{ maxHeight: height }}
+        style={{ maxHeight: height, width: 'auto' }}
       />
       {showTagline && variant === 'sidebar' && (
         <div className="min-w-0 border-l border-white/15 pl-3">
