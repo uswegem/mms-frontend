@@ -86,10 +86,13 @@ export default function UsersPage() {
         fullName: createName,
         roleIds: [createRoleId],
       });
+      const action = result.reactivated ? 'reactivated' : 'created';
       setSuccess(
         result.emailSent
-          ? `User ${result.user.email} created. Login credentials were sent to their email.`
-          : `User ${result.user.email} created.`,
+          ? `User ${result.user.email} ${action}. Login credentials were sent to their email.`
+          : `User ${result.user.email} ${action}.${
+              result.temporaryPassword ? ' Copy the temporary password below.' : ''
+            }`,
       );
       if (result.temporaryPassword) setTempPassword(result.temporaryPassword);
       setCreateEmail('');
