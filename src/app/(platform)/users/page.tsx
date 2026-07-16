@@ -46,6 +46,8 @@ export default function UsersPage() {
   const [createEmail, setCreateEmail] = useState('');
   const [createName, setCreateName] = useState('');
   const [createRoleId, setCreateRoleId] = useState('');
+  const [createPassword, setCreatePassword] = useState('');
+  const [createPasswordConfirm, setCreatePasswordConfirm] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRoleId, setInviteRoleId] = useState('');
 
@@ -80,24 +82,31 @@ export default function UsersPage() {
     setError(null);
     setSuccess(null);
     setTempPassword(null);
+
+    if (createPassword !== createPasswordConfirm) {
+      setError('Password and confirm password do not match.');
+      return;
+    }
+
     try {
       const result = await createUser(token, {
         email: createEmail,
         fullName: createName,
         roleIds: [createRoleId],
+        password: createPassword,
       });
       const action = result.reactivated ? 'reactivated' : 'created';
       setSuccess(
         result.emailSent
           ? `User ${result.user.email} ${action}. Login credentials were sent to their email.`
-          : `User ${result.user.email} ${action}.${
-              result.temporaryPassword ? ' Copy the temporary password below.' : ''
-            }`,
+          : `User ${result.user.email} ${action}. They can sign in with the password you set.`,
       );
       if (result.temporaryPassword) setTempPassword(result.temporaryPassword);
       setCreateEmail('');
       setCreateName('');
       setCreateRoleId('');
+      setCreatePassword('');
+      setCreatePasswordConfirm('');
       setShowCreate(false);
       await queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (err) {
@@ -185,28 +194,89 @@ export default function UsersPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Create User</CardTitle>
-            <CardDescription>Creates an active user with a temporary password.</CardDescription>
+            <CardDescription>
+              Creates an active user with the login password you set below.
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleCreate} className="grid gap-4 md:grid-cols-3">
+            <form onSubmit={handleCreate} className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="create-email">Email</Label>
-                <Input id="create-email" type="email" required value={createEmail} onChange={(e) => setCreateEmail(e.target.value)} />
+                <Input
+                  id="create-email"
+                  type="email"
+                  required
+                  value={createEmail}
+                  onChange={(e) => setCreateEmail(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="create-name">Full Name</Label>
-                <Input id="create-name" required value={createName} onChange={(e) => setCreateName(e.target.value)} />
+                <Input
+                  id="create-name"
+                  required
+                  value={createName}
+                  onChange={(e) => setCreateName(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="create-role">Role</Label>
-                <Select id="create-role" required value={createRoleId} onChange={(e) => setCreateRoleId(e.target.value)}>
+                <Select
+                  id="create-role"
+                  required
+                  value={createRoleId}
+                  onChange={(e) => setCreateRoleId(e.target.value)}
+                >
                   <option value="">Select role…</option>
-                  {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  {roles.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
                 </Select>
               </div>
-              <div className="flex gap-2 md:col-span-3">
-                <Button type="submit" disabled={rolesQuery.isLoading}>Create</Button>
-                <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+              <div className="space-y-2 md:col-span-2">
+                <p className="text-xs text-muted-foreground">
+                  Password must be at least 12 characters and include uppercase,
+                  lowercase, a number, and a special character (e.g.{' '}
+                  <code className="font-mono">Ops@12345678</code>).
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="create-password">Password</Label>
+                <Input
+                  id="create-password"
+                  type="password"
+                  required
+                  minLength={12}
+                  autoComplete="new-password"
+                  value={createPassword}
+                  onChange={(e) => setCreatePassword(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="create-password-confirm">Confirm Password</Label>
+                <Input
+                  id="create-password-confirm"
+                  type="password"
+                  required
+                  minLength={12}
+                  autoComplete="new-password"
+                  value={createPasswordConfirm}
+                  onChange={(e) => setCreatePasswordConfirm(e.target.value)}
+                />
+              </div>
+              <div className="flex gap-2 md:col-span-2">
+                <Button type="submit" disabled={rolesQuery.isLoading}>
+                  Create
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowCreate(false)}
+                >
+                  Cancel
+                </Button>
               </div>
             </form>
           </CardContent>

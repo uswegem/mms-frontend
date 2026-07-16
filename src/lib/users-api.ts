@@ -102,6 +102,7 @@ export async function createUser(
     roleIds: string[];
     merchantId?: string;
     phone?: string;
+    password?: string;
   },
 ): Promise<{
   user: User;
