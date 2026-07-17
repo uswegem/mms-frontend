@@ -3,7 +3,7 @@
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { QrImage } from './qr-image';
+import { TanqrDisplayLayout } from './tanqr-display-layout';
 import { QrStatusBadge } from './qr-status-badge';
 import { formatDateTime } from '@/lib/format';
 import { resolveAssetUrl } from '@/lib/merchant-qr-api';
@@ -45,10 +45,14 @@ export function StaticQrCard({
         <div className="grid gap-6 lg:grid-cols-[auto_1fr]">
           <div className="flex flex-col items-center gap-3">
             <button type="button" onClick={onView} className="cursor-pointer">
-              <QrImage tlvPayload={qr.tlv_payload} assets={qr.assets} size={200} />
+              <TanqrDisplayLayout
+                alias={qr.alias}
+                merchantName={qr.merchant_name}
+                tlvPayload={qr.tlv_payload}
+                assets={qr.assets}
+                qrSize={200}
+              />
             </button>
-            <p className="text-xl font-bold tracking-wider">{qr.alias}</p>
-            <p className="text-sm text-muted-foreground">{qr.merchant_name}</p>
             <div className="flex gap-2">
               <Badge variant="primary">STATIC</Badge>
               <QrStatusBadge status={qr.status} />

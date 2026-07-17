@@ -5,7 +5,6 @@ import { Select } from '@/components/ui/select';
 import {
   DEFAULT_BANK_SWIFT,
   formatBankLabel,
-  getBankBySwift,
   TANZANIA_BANKS,
 } from '@/lib/tanzania-banks';
 
@@ -22,8 +21,6 @@ export function BankSelectField({
   required = true,
   label = 'Bank',
 }: BankSelectFieldProps) {
-  const selected = getBankBySwift(value || DEFAULT_BANK_SWIFT);
-
   return (
     <div className="space-y-2">
       <Label>
@@ -44,11 +41,6 @@ export function BankSelectField({
           </option>
         ))}
       </Select>
-      {selected && (
-        <p className="text-xs text-muted-foreground">
-          SWIFT/BIC: <span className="font-mono font-medium text-foreground">{selected.swiftCode}</span>
-        </p>
-      )}
     </div>
   );
 }

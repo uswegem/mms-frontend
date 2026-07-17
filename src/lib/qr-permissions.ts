@@ -1,4 +1,5 @@
 import type { JwtClaims } from '@/lib/auth-api';
+import type { MerchantQrEligibility } from '@/types/merchant-qr';
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'ACQUIRER_ADMIN', 'BANK_ADMIN'];
 
@@ -28,6 +29,16 @@ export function canRevealInternalId(user: JwtClaims | null): boolean {
 
 export function isQrGenerationBlocked(merchantStatus: string): boolean {
   return !['ACTIVE'].includes(merchantStatus);
+}
+
+/** True when merchant status and Lipa Namba alias satisfy backend QR validators. */
+export function isQrGenerationEligible(
+  merchantStatus: string,
+  eligibility?: MerchantQrEligibility | null,
+): boolean {
+  if (isQrGenerationBlocked(merchantStatus)) return false;
+  if (!eligibility) return false;
+  return eligibility.alias_available;
 }
 
 export function qrSummaryLabel(

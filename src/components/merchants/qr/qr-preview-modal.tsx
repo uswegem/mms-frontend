@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { QrImage } from './qr-image';
+import { TanqrDisplayLayout } from './tanqr-display-layout';
 import { QrStatusBadge } from './qr-status-badge';
 import { formatDateTime } from '@/lib/format';
 import { canRevealInternalId } from '@/lib/qr-permissions';
@@ -45,11 +45,15 @@ export function QrPreviewModal({
               <TabsTrigger value="metadata">Metadata</TabsTrigger>
             </TabsList>
             <TabsContent value="preview" className="mt-4 space-y-4">
-              <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
-                <QrImage tlvPayload={qr.tlv_payload} assets={qr.assets} size={220} />
+              <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+                <TanqrDisplayLayout
+                  alias={qr.alias}
+                  merchantName={qr.merchant_name}
+                  tlvPayload={qr.tlv_payload}
+                  assets={qr.assets}
+                  qrSize={220}
+                />
                 <div className="space-y-2 text-sm">
-                  <p className="text-2xl font-bold tracking-wide">{qr.alias}</p>
-                  <p className="font-medium">{qr.merchant_name}</p>
                   <div className="flex flex-wrap gap-2">
                     <QrStatusBadge status={qr.status} />
                     <span className="rounded-md bg-muted px-2 py-0.5 text-xs uppercase">

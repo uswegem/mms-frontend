@@ -7,6 +7,11 @@ export interface TokenResponse {
   tokenType: 'Bearer';
 }
 
+export interface ForgotPasswordResponse {
+  message: string;
+  resetToken?: string;
+}
+
 export interface ProblemDetails {
   code?: string;
   detail?: string;
@@ -80,6 +85,30 @@ export async function refreshSession(): Promise<TokenResponse> {
   });
   if (!res.ok) throw await parseError(res);
   return res.json();
+}
+
+export async function forgotPassword(
+  email: string,
+): Promise<ForgotPasswordResponse> {
+  const res = await fetch(`${API_BASE}/auth/password/forgot`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) throw await parseError(res);
+  return res.json();
+}
+
+export async function resetPassword(
+  token: string,
+  newPassword: string,
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/auth/password/reset`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, newPassword }),
+  });
+  if (!res.ok) throw await parseError(res);
 }
 
 export interface JwtClaims {

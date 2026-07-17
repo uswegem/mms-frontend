@@ -18,6 +18,7 @@ import {
   canDownloadQr,
   canRegenerateQr,
   isQrGenerationBlocked,
+  isQrGenerationEligible,
 } from '@/lib/qr-permissions';
 import type { MerchantQrCode } from '@/types/merchant-qr';
 import { Button } from '@/components/ui/button';
@@ -51,7 +52,6 @@ export function MerchantQrTab({ merchant, onSuccess, onError }: MerchantQrTabPro
   const [dynamicModalOpen, setDynamicModalOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const blocked = isQrGenerationBlocked(merchant.status);
   const canCreate = canCreateQr(user);
   const canRegen = canRegenerateQr(user);
   const canDisable = canDisableQr(user);
@@ -68,6 +68,9 @@ export function MerchantQrTab({ merchant, onSuccess, onError }: MerchantQrTabPro
     queryFn: () => listStudents(token, merchant.id),
     enabled: !!accessToken && merchant.isSchool,
   });
+
+  const blocked = !isQrGenerationEligible(merchant.status, qrQuery.data?.eligibility);
+  const statusBlocked = isQrGenerationBlocked(merchant.status);
 
   const staticQrs = useMemo(
     () => qrQuery.data?.qr_codes.filter((q) => q.qr_type === 'static' && !q.student_id) ?? [],
@@ -222,6 +225,7 @@ export function MerchantQrTab({ merchant, onSuccess, onError }: MerchantQrTabPro
         <QrEligibilityBlocker
           merchant={merchant}
           eligibility={qrQuery.data?.eligibility}
+          statusBlocked={statusBlocked}
           onRefresh={() => void refresh()}
         />
       )}

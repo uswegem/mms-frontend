@@ -16,10 +16,10 @@ export function getBankBySwift(swiftCode: string): TanzaniaBank | undefined {
 }
 
 export function formatBankLabel(bank: TanzaniaBank): string {
-  return `${bank.name} — ${bank.swiftCode}`;
+  return bank.name;
 }
 
 export function formatBankDisplay(swiftCode: string): string {
   const bank = getBankBySwift(swiftCode);
-  return bank ? formatBankLabel(bank) : swiftCode;
+  return bank ? bank.name : '';
 }

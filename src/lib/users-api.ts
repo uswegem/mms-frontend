@@ -102,8 +102,14 @@ export async function createUser(
     roleIds: string[];
     merchantId?: string;
     phone?: string;
+    password?: string;
   },
-): Promise<{ user: User; temporaryPassword?: string }> {
+): Promise<{
+  user: User;
+  emailSent?: boolean;
+  temporaryPassword?: string;
+  reactivated?: boolean;
+}> {
   const res = await fetch(`${API_BASE}/users`, {
     method: 'POST',
     headers: authHeaders(token),
