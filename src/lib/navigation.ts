@@ -63,7 +63,7 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       {
         id: 'approvals',
-        label: 'Checker Inbox',
+        label: 'Merchant Approval',
         href: '/approvals',
         icon: Shield,
         permission: 'approval:task:read',

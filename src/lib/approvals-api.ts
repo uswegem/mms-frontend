@@ -1,12 +1,15 @@
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
+export type ApprovalTaskStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED';
+
 export interface ApprovalTask {
   id: string;
+  acquirerId?: string;
   entityType: string;
   entityId: string;
   makerId: string;
-  status: string;
+  status: ApprovalTaskStatus | string;
   expiresAt: string | null;
   createdAt: string;
   decision?: {
@@ -15,6 +18,13 @@ export interface ApprovalTask {
     notes: string | null;
     decidedAt: string;
   } | null;
+}
+
+export interface ListApprovalTasksParams {
+  page?: number;
+  limit?: number;
+  status?: ApprovalTaskStatus | '';
+  entityType?: string;
 }
 
 async function request<T>(path: string, token: string, init?: RequestInit): Promise<T> {
@@ -29,18 +39,35 @@ async function request<T>(path: string, token: string, init?: RequestInit): Prom
   });
   if (!res.ok) {
     const problem = await res.json().catch(() => ({}));
-    throw new Error(problem.detail ?? `Request failed (${res.status})`);
+    throw new Error(problem.detail ?? problem.title ?? `Request failed (${res.status})`);
   }
   return res.json();
 }
 
-export function listApprovalTasks(token: string, status = 'PENDING') {
-  const params = new URLSearchParams({ page: '1', limit: '50' });
-  if (status) params.set('status', status);
-  return request<{ data: ApprovalTask[]; meta: { total: number } }>(
-    `/approvals/tasks?${params}`,
+export function listApprovalTasks(
+  token: string,
+  statusOrParams: ApprovalTaskStatus | ListApprovalTasksParams | '' = 'PENDING',
+) {
+  const params =
+    typeof statusOrParams === 'string' || statusOrParams === ''
+      ? { page: 1, limit: 50, status: statusOrParams || undefined }
+      : statusOrParams;
+
+  const qs = new URLSearchParams({
+    page: String(params.page ?? 1),
+    limit: String(params.limit ?? 50),
+  });
+  if (params.status) qs.set('status', params.status);
+  if (params.entityType) qs.set('entityType', params.entityType);
+
+  return request<{ data: ApprovalTask[]; meta: { total: number; page?: number; limit?: number } }>(
+    `/approvals/tasks?${qs}`,
     token,
   );
+}
+
+export function getApprovalTask(token: string, taskId: string) {
+  return request<ApprovalTask>(`/approvals/tasks/${taskId}`, token);
 }
 
 export function approveTask(token: string, taskId: string, notes?: string) {

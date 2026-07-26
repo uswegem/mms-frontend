@@ -458,7 +458,7 @@ function WorkflowActions({
           </Button>
         )}
         {['UNDER_REVIEW', 'PENDING_KYC_APPROVAL'].includes(app.status) && (
-          <Link href="/approvals"><Button variant="outline">Checker Inbox</Button></Link>
+          <Link href="/approvals"><Button variant="outline">Merchant Approval</Button></Link>
         )}
         {app.status === 'ACTIVE' && app.merchantId && (
           <Link href={`/merchants/${app.merchantId}`}>

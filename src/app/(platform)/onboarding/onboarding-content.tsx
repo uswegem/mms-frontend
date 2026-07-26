@@ -156,7 +156,7 @@ export function OnboardingPageContent() {
           </>
         )}
         <Link href="/approvals">
-          <Button variant="outline">Checker Inbox</Button>
+          <Button variant="outline">Merchant Approval</Button>
         </Link>
       </PageHeader>
 
