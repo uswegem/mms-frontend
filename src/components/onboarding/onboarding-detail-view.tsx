@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Alert } from '@/components/ui/alert';
 import { Badge, statusBadgeVariant } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -51,6 +52,7 @@ export function OnboardingDetailView({ id }: { id: string }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [kycDocType, setKycDocType] = useState<'KYC_ID' | 'KYC_TIN' | 'KYC_LICENSE'>('KYC_ID');
   const [accountNumber, setAccountNumber] = useState('');
   const [accountName, setAccountName] = useState('');
   const [bankCode, setBankCode] = useState(DEFAULT_BANK_SWIFT);
@@ -178,15 +180,41 @@ export function OnboardingDetailView({ id }: { id: string }) {
             <CardHeader><CardTitle className="text-base">KYC Documents</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               {canWrite && editable && (
-                <>
-                  <input ref={fileRef} type="file" className="hidden" accept=".pdf,.jpg,.png" onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void run('Document upload', () => uploadOnboardingKycFile(token, id, file, 'KYC_ID'));
-                  }} />
+                <div className="flex flex-wrap items-end gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="kyc-doc-type">Document type</Label>
+                    <Select
+                      id="kyc-doc-type"
+                      value={kycDocType}
+                      onChange={(e) =>
+                        setKycDocType(e.target.value as 'KYC_ID' | 'KYC_TIN' | 'KYC_LICENSE')
+                      }
+                      className="w-48"
+                    >
+                      <option value="KYC_ID">KYC ID</option>
+                      <option value="KYC_TIN">KYC TIN</option>
+                      <option value="KYC_LICENSE">KYC License</option>
+                    </Select>
+                  </div>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    className="hidden"
+                    accept=".pdf,.jpg,.png"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        void run('Document upload', () =>
+                          uploadOnboardingKycFile(token, id, file, kycDocType),
+                        );
+                      }
+                      e.target.value = '';
+                    }}
+                  />
                   <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
-                    Upload KYC ID
+                    Upload {kycDocType.replace('KYC_', '')}
                   </Button>
-                </>
+                </div>
               )}
               <ul className="space-y-2 text-sm">
                 {(app.merchant.documents ?? []).map((d) => (

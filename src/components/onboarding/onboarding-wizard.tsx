@@ -82,6 +82,69 @@ function ReviewRow({ label, value, mono }: { label: string; value: string; mono?
   );
 }
 
+function KycFileDropzone({
+  id,
+  label,
+  file,
+  dragging,
+  onDraggingChange,
+  onFile,
+}: {
+  id: string;
+  label: string;
+  file: File | null;
+  dragging: boolean;
+  onDraggingChange: (v: boolean) => void;
+  onFile: (file: File | null) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label}</Label>
+      <label
+        htmlFor={id}
+        onDragOver={(e) => {
+          e.preventDefault();
+          onDraggingChange(true);
+        }}
+        onDragLeave={() => onDraggingChange(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          onDraggingChange(false);
+          const next = e.dataTransfer.files?.[0];
+          if (next) onFile(next);
+        }}
+        className={cn(
+          'dropzone flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-6 text-center',
+          dragging && 'is-dragging',
+        )}
+      >
+        <UploadCloud className="h-7 w-7 text-muted-foreground" />
+        <p className="text-sm font-medium">Click to upload or drag and drop</p>
+        <p className="text-xs text-muted-foreground">PDF, JPG or PNG</p>
+        <input
+          id={id}
+          type="file"
+          accept=".pdf,.jpg,.png"
+          className="hidden"
+          onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+        />
+      </label>
+      {file && (
+        <div className="flex items-center justify-between rounded-md border border-border bg-muted/40 px-3 py-2">
+          <div className="flex min-w-0 items-center gap-2 text-sm">
+            <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="truncate font-medium">{file.name}</span>
+            <span className="shrink-0 text-xs text-muted-foreground">({formatFileSize(file.size)})</span>
+          </div>
+          <Button type="button" variant="ghost" size="sm" onClick={() => onFile(null)}>
+            Remove
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function OnboardingWizard() {
   const router = useRouter();
   const { accessToken } = useAuth();
@@ -90,7 +153,7 @@ export function OnboardingWizard() {
   const [applicationId, setApplicationId] = useState<string | null>(null);
   const [onboardingType, setOnboardingType] = useState<'MERCHANT' | 'SCHOOL'>('MERCHANT');
   const [entityType, setEntityType] = useState<'SOLE_PROPRIETOR' | 'COMPANY'>('SOLE_PROPRIETOR');
-  const [dragging, setDragging] = useState(false);
+  const [draggingField, setDraggingField] = useState<string | null>(null);
   const [form, setForm] = useState({
     legalName: '',
     tradingName: '',
@@ -111,6 +174,8 @@ export function OnboardingWizard() {
     accountName: '',
     bankCode: DEFAULT_BANK_SWIFT,
     kycFile: null as File | null,
+    kycTinFile: null as File | null,
+    kycLicenseFile: null as File | null,
   });
 
   const { regions, districts, wards, getPostcode } = useTanzaniaLocations(
@@ -226,13 +291,23 @@ export function OnboardingWizard() {
         });
       }
       if (step === 3) {
+        const needsFullKyc = onboardingType === 'SCHOOL' || entityType === 'COMPANY';
         if (!form.kycFile) {
-          throw new Error('Please upload the KYC document to continue');
+          throw new Error('Please upload the KYC ID document to continue');
+        }
+        if (needsFullKyc && !form.kycTinFile) {
+          throw new Error('Please upload the TIN certificate (KYC_TIN) to continue');
+        }
+        if (needsFullKyc && !form.kycLicenseFile) {
+          throw new Error('Please upload the business/school license (KYC_LICENSE) to continue');
         }
         const id = await ensureApplication();
         await uploadOnboardingKycFile(token, id, form.kycFile, 'KYC_ID');
-        if (onboardingType === 'SCHOOL' || entityType === 'COMPANY') {
-          await uploadOnboardingKycFile(token, id, form.kycFile, 'KYC_TIN');
+        if (needsFullKyc && form.kycTinFile) {
+          await uploadOnboardingKycFile(token, id, form.kycTinFile, 'KYC_TIN');
+        }
+        if (needsFullKyc && form.kycLicenseFile) {
+          await uploadOnboardingKycFile(token, id, form.kycLicenseFile, 'KYC_LICENSE');
         }
       }
       if (step === 4) {
@@ -445,52 +520,42 @@ export function OnboardingWizard() {
             )}
 
             {step === 3 && (
-              <div className="space-y-3">
-                <Label>KYC ID Document *</Label>
-                <label
-                  htmlFor="kyc-file"
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setDragging(true);
-                  }}
-                  onDragLeave={() => setDragging(false)}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setDragging(false);
-                    const file = e.dataTransfer.files?.[0];
-                    if (file) setForm({ ...form, kycFile: file });
-                  }}
-                  className={cn(
-                    'dropzone flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border p-8 text-center',
-                    dragging && 'is-dragging',
-                  )}
-                >
-                  <UploadCloud className="h-8 w-8 text-muted-foreground" />
-                  <p className="text-sm font-medium">Click to upload or drag and drop</p>
-                  <p className="text-xs text-muted-foreground">PDF, JPG or PNG</p>
-                  <input
-                    id="kyc-file"
-                    type="file"
-                    accept=".pdf,.jpg,.png"
-                    className="hidden"
-                    onChange={(e) => setForm({ ...form, kycFile: e.target.files?.[0] ?? null })}
-                  />
-                </label>
-                {form.kycFile && (
-                  <div className="flex items-center justify-between rounded-md border border-border bg-muted/40 px-3 py-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{form.kycFile.name}</span>
-                      <span className="text-xs text-muted-foreground">({formatFileSize(form.kycFile.size)})</span>
-                    </div>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => setForm({ ...form, kycFile: null })}>
-                      Remove
-                    </Button>
-                  </div>
+              <div className="space-y-5">
+                <KycFileDropzone
+                  id="kyc-id-file"
+                  label="KYC ID Document * (National ID / Passport)"
+                  file={form.kycFile}
+                  dragging={draggingField === 'kyc'}
+                  onDraggingChange={(v) => setDraggingField(v ? 'kyc' : null)}
+                  onFile={(file) => setForm({ ...form, kycFile: file })}
+                />
+                {(onboardingType === 'SCHOOL' || entityType === 'COMPANY') && (
+                  <>
+                    <KycFileDropzone
+                      id="kyc-tin-file"
+                      label="TIN Certificate * (KYC_TIN)"
+                      file={form.kycTinFile}
+                      dragging={draggingField === 'tin'}
+                      onDraggingChange={(v) => setDraggingField(v ? 'tin' : null)}
+                      onFile={(file) => setForm({ ...form, kycTinFile: file })}
+                    />
+                    <KycFileDropzone
+                      id="kyc-license-file"
+                      label={
+                        onboardingType === 'SCHOOL'
+                          ? 'School License / Registration Certificate * (KYC_LICENSE)'
+                          : 'Business License * (KYC_LICENSE)'
+                      }
+                      file={form.kycLicenseFile}
+                      dragging={draggingField === 'license'}
+                      onDraggingChange={(v) => setDraggingField(v ? 'license' : null)}
+                      onFile={(file) => setForm({ ...form, kycLicenseFile: file })}
+                    />
+                  </>
                 )}
                 <p className="text-sm text-muted-foreground">
                   {onboardingType === 'SCHOOL' || entityType === 'COMPANY'
-                    ? 'TIN certificate and business license are also required — upload ID first, then add others from the detail page.'
+                    ? 'Schools and companies must upload ID, TIN certificate, and license before submission.'
                     : 'National ID or passport required.'}
                 </p>
               </div>
@@ -509,7 +574,13 @@ export function OnboardingWizard() {
                   <ReviewRow label="Account Number" value={form.accountNumber} mono />
                 </ReviewSection>
                 <ReviewSection title="KYC" onEdit={() => setStep(3)}>
-                  <ReviewRow label="Document" value={form.kycFile?.name ?? '—'} />
+                  <ReviewRow label="KYC ID" value={form.kycFile?.name ?? '—'} />
+                  {(onboardingType === 'SCHOOL' || entityType === 'COMPANY') && (
+                    <>
+                      <ReviewRow label="TIN certificate" value={form.kycTinFile?.name ?? '—'} />
+                      <ReviewRow label="License" value={form.kycLicenseFile?.name ?? '—'} />
+                    </>
+                  )}
                 </ReviewSection>
               </div>
             )}

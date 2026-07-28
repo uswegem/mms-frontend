@@ -16,6 +16,7 @@ import { Separator } from '@/components/ui/separator';
 
 export interface ApprovalDetailDrawerProps {
   open: boolean;
+  variant?: 'merchant' | 'school';
   task: ApprovalTask | null;
   application: OnboardingApplication | null;
   loading?: boolean;
@@ -40,6 +41,7 @@ function Field({ label, value }: { label: string; value?: string | null }) {
 
 export function ApprovalDetailDrawer({
   open,
+  variant = 'merchant',
   task,
   application,
   loading,
@@ -60,6 +62,10 @@ export function ApprovalDetailDrawer({
   const profile = merchant?.profile;
   const docs = merchant?.documents ?? [];
   const isPending = task?.status === 'PENDING';
+  const isSchool = variant === 'school' || merchant?.isSchool;
+  const reviewTitle = isSchool ? 'School approval review' : 'Merchant approval review';
+  const approveButtonLabel = isSchool ? 'Approve school' : 'Approve merchant';
+  const openRecordLabel = isSchool ? 'Open full school onboarding record' : 'Open full onboarding record';
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -73,7 +79,7 @@ export function ApprovalDetailDrawer({
         <header className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
           <div className="min-w-0 space-y-1">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Merchant approval review
+              {reviewTitle}
             </p>
             <h2 className="truncate text-lg font-semibold text-foreground">
               {merchant?.tradingName || merchant?.legalName || 'Loading…'}
@@ -87,7 +93,7 @@ export function ApprovalDetailDrawer({
                   {formatOnboardingStatus(application.status)}
                 </Badge>
               )}
-              {merchant?.isSchool ? (
+              {isSchool ? (
                 <Badge variant="info">School</Badge>
               ) : (
                 <Badge variant="outline">Retail</Badge>
@@ -109,14 +115,20 @@ export function ApprovalDetailDrawer({
           ) : (
             <div className="space-y-6">
               <section className="grid gap-4 sm:grid-cols-2">
-                <Field label="Business / trading name" value={merchant?.tradingName} />
+                <Field
+                  label={isSchool ? 'School / trading name' : 'Business / trading name'}
+                  value={merchant?.tradingName}
+                />
                 <Field label="Legal name" value={merchant?.legalName} />
-                <Field label="Owner / contact person" value={merchant?.contactPerson} />
+                <Field
+                  label={isSchool ? 'Head / contact person' : 'Owner / contact person'}
+                  value={merchant?.contactPerson}
+                />
                 <Field label="Email" value={profile?.contactEmail} />
                 <Field label="Phone" value={profile?.contactPhone} />
                 <Field
-                  label="Business type"
-                  value={merchant?.isSchool ? 'School' : application.legalEntityType}
+                  label={isSchool ? 'Institution type' : 'Business type'}
+                  value={isSchool ? 'School' : application.legalEntityType}
                 />
                 <Field label="MCC" value={merchant?.mcc} />
                 <Field label="Registration date" value={formatDateTime(application.createdAt)} />
@@ -276,7 +288,7 @@ export function ApprovalDetailDrawer({
             )}
             {isPending && canApprove && (
               <Button disabled={busy} onClick={() => void onApprove(notes.trim() || undefined)}>
-                Approve merchant
+                {approveButtonLabel}
               </Button>
             )}
           </div>
