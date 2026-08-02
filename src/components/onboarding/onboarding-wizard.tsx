@@ -25,9 +25,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { Separator } from '@/components/ui/separator';
 import { Alert } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
+import { SORTED_MCC_CODES, findMccByCode, formatMccLabel } from '@/lib/mcc-codes';
 import {
   assignSettlementAccount,
   createOnboardingApplication,
@@ -157,6 +159,7 @@ export function OnboardingWizard() {
   const [form, setForm] = useState({
     legalName: '',
     tradingName: '',
+    businessType: '',
     mcc: '5814',
     region: '',
     district: '',
@@ -177,6 +180,12 @@ export function OnboardingWizard() {
     kycTinFile: null as File | null,
     kycLicenseFile: null as File | null,
   });
+
+  const mccOptions: ComboboxOption[] = SORTED_MCC_CODES.map((m) => ({
+    value: m.code,
+    label: formatMccLabel(m),
+    keywords: m.code,
+  }));
 
   const { regions, districts, wards, getPostcode } = useTanzaniaLocations(
     form.region || undefined,
@@ -265,6 +274,9 @@ export function OnboardingWizard() {
     setError(null);
     try {
       if (step === 1) {
+        if (onboardingType === 'MERCHANT' && !form.businessType) {
+          throw new Error('Please select a Business Type to continue');
+        }
         const id = await ensureApplication();
         await updateOnboardingApplication(token, id, {
           tradingName: form.tradingName,
@@ -423,9 +435,29 @@ export function OnboardingWizard() {
                       <Input required value={form.tradingName} onChange={(e) => setForm({ ...form, tradingName: e.target.value })} />
                     </div>
                     {onboardingType === 'MERCHANT' && (
+                      <div className="sm:col-span-2">
+                        <Label htmlFor="business-type">Business Type *</Label>
+                        <Combobox
+                          id="business-type"
+                          required
+                          options={mccOptions}
+                          value={form.businessType}
+                          onChange={(code) => setForm({ ...form, businessType: code, mcc: code })}
+                          placeholder="Search by business name or MCC code…"
+                        />
+                      </div>
+                    )}
+                    {onboardingType === 'MERCHANT' && (
                       <div>
                         <Label>MCC *</Label>
-                        <Input required pattern="[0-9]{4}" value={form.mcc} onChange={(e) => setForm({ ...form, mcc: e.target.value })} />
+                        <Input
+                          required
+                          pattern="[0-9]{4}"
+                          readOnly={!!form.businessType}
+                          className={form.businessType ? 'bg-muted/40 text-muted-foreground' : undefined}
+                          value={form.mcc}
+                          onChange={(e) => setForm({ ...form, mcc: e.target.value })}
+                        />
                       </div>
                     )}
                     <div>
@@ -567,6 +599,16 @@ export function OnboardingWizard() {
                   <ReviewRow label="Type" value={onboardingType} />
                   <ReviewRow label="Legal Name" value={form.legalName} />
                   <ReviewRow label="Trading Name" value={form.tradingName} />
+                  {onboardingType === 'MERCHANT' && (
+                    <ReviewRow
+                      label="Business Type"
+                      value={
+                        findMccByCode(form.businessType)
+                          ? formatMccLabel(findMccByCode(form.businessType)!)
+                          : '—'
+                      }
+                    />
+                  )}
                   <ReviewRow label="TIN" value={form.taxId || '—'} />
                 </ReviewSection>
                 <ReviewSection title="Settlement" onEdit={() => setStep(2)}>
