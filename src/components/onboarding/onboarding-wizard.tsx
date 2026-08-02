@@ -47,6 +47,17 @@ import { StepProgress, type StepProgressItem } from '@/components/onboarding/ste
 const WIZARD_STEPS = ['Type', 'Profile', 'Settlement', 'KYC', 'Review'] as const;
 const STEP_ICONS = [Building2, FileText, Landmark, ShieldCheck, ClipboardCheck];
 
+/** Masks a TIN as the user types: digits only, dashes auto-inserted as XXX-XXX-XXX. */
+function formatTin(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 9);
+  const parts = [digits.slice(0, 3), digits.slice(3, 6), digits.slice(6, 9)].filter(Boolean);
+  return parts.join('-');
+}
+
+function isValidTin(value: string): boolean {
+  return value.replace(/\D/g, '').length === 9;
+}
+
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -156,6 +167,7 @@ export function OnboardingWizard() {
   const [onboardingType, setOnboardingType] = useState<'MERCHANT' | 'SCHOOL'>('MERCHANT');
   const [entityType, setEntityType] = useState<'SOLE_PROPRIETOR' | 'COMPANY'>('SOLE_PROPRIETOR');
   const [draggingField, setDraggingField] = useState<string | null>(null);
+  const [tinTouched, setTinTouched] = useState(false);
   const [form, setForm] = useState({
     legalName: '',
     tradingName: '',
@@ -276,6 +288,10 @@ export function OnboardingWizard() {
       if (step === 1) {
         if (onboardingType === 'MERCHANT' && !form.businessType) {
           throw new Error('Please select a Business Type to continue');
+        }
+        if (form.taxId && !isValidTin(form.taxId)) {
+          setTinTouched(true);
+          throw new Error('TIN must be 9 digits in the format XXX-XXX-XXX');
         }
         const id = await ensureApplication();
         await updateOnboardingApplication(token, id, {
@@ -461,8 +477,22 @@ export function OnboardingWizard() {
                       </div>
                     )}
                     <div>
-                      <Label>TIN</Label>
-                      <Input value={form.taxId} onChange={(e) => setForm({ ...form, taxId: e.target.value })} />
+                      <Label htmlFor="tin">TIN</Label>
+                      <Input
+                        id="tin"
+                        inputMode="numeric"
+                        placeholder="XXX-XXX-XXX"
+                        maxLength={11}
+                        value={form.taxId}
+                        onChange={(e) => setForm({ ...form, taxId: formatTin(e.target.value) })}
+                        onBlur={() => setTinTouched(true)}
+                        aria-invalid={tinTouched && !!form.taxId && !isValidTin(form.taxId)}
+                      />
+                      {tinTouched && form.taxId && !isValidTin(form.taxId) && (
+                        <p className="mt-1 text-sm text-destructive">
+                          TIN must be 9 digits in the format XXX-XXX-XXX
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label>VRN</Label>
@@ -511,8 +541,16 @@ export function OnboardingWizard() {
                       </Select>
                     </div>
                     <div>
-                      <Label>Postcode *</Label>
-                      <Input required pattern="[0-9]{5}" value={form.postalCode} onChange={(e) => setForm({ ...form, postalCode: e.target.value })} />
+                      <Label htmlFor="postcode">Postcode *</Label>
+                      <Input
+                        id="postcode"
+                        required
+                        pattern="[0-9]{5}"
+                        readOnly
+                        className="bg-muted/40 text-muted-foreground"
+                        placeholder="Select a ward"
+                        value={form.postalCode}
+                      />
                     </div>
                   </div>
                 </div>
