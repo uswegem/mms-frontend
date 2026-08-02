@@ -7,7 +7,10 @@ import type {
 import { refreshSession } from '@/lib/auth-api';
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+  process.env.NEXT_PUBLIC_API_URL ??
+  (process.env.NODE_ENV === 'development'
+    ? 'http://localhost:3001/api/v1'
+    : '/api/v1');
 
 export const API_ORIGIN = API_BASE.replace(/\/api\/v1\/?$/, '');
 
