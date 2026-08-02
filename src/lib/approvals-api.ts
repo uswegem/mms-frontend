@@ -49,7 +49,7 @@ export function listApprovalTasks(
   statusOrParams: ApprovalTaskStatus | ListApprovalTasksParams | '' = 'PENDING',
 ) {
   const params =
-    typeof statusOrParams === 'string' || statusOrParams === ''
+    typeof statusOrParams === 'string'
       ? { page: 1, limit: 50, status: statusOrParams || undefined }
       : statusOrParams;
 
