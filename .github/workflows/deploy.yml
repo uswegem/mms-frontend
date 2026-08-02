@@ -37,7 +37,7 @@ jobs:
             echo "pm2_app=mms-frontend-prod" >> $GITHUB_OUTPUT
             echo "port=4000" >> $GITHUB_OUTPUT
           else
-            echo "deploy_path=/opt/mms/frontend/uat" >> $GITHUB_OUTPUT
+            echo "deploy_path=/opt/mms/frontend" >> $GITHUB_OUTPUT
             echo "pm2_app=mms-frontend-uat" >> $GITHUB_OUTPUT
             echo "port=4001" >> $GITHUB_OUTPUT
           fi
