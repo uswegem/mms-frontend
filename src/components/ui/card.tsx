@@ -29,7 +29,7 @@ export function CardTitle({
 }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h2
-      className={cn('text-xl font-semibold tracking-tight', className)}
+      className={cn('font-serif text-xl font-semibold tracking-tight', className)}
       {...props}
     />
   );

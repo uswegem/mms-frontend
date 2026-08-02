@@ -37,21 +37,25 @@ export function StepProgress({ steps }: { steps: StepProgressItem[] }) {
           >
             <span
               className={cn(
-                'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold transition-colors',
+                'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold transition-all',
                 step.state === 'done' && 'border-[var(--brand-yellow)] bg-[var(--brand-yellow)] text-[var(--brand-black)]',
                 step.state === 'active' &&
-                  'border-[var(--brand-yellow)] bg-card text-foreground shadow-[var(--shadow-md)]',
+                  'border-[var(--brand-yellow)] bg-card text-[var(--brand-navy)] shadow-[var(--shadow-md)] ring-2 ring-[var(--brand-navy)]/15',
                 step.state === 'upcoming' && 'border-border bg-muted text-muted-foreground',
                 step.state === 'failed' &&
                   'border-[var(--destructive-border)] bg-[var(--destructive-muted)] text-[var(--destructive)]',
               )}
             >
-              {step.state === 'done' ? <Check className="h-4 w-4" /> : (step.icon ?? i + 1)}
+              {step.state === 'done' ? (
+                <Check className="h-4 w-4" strokeWidth={2.25} />
+              ) : (
+                step.icon ?? i + 1
+              )}
             </span>
             <span
               className={cn(
                 'max-w-[5.5rem] text-center text-[11px] font-medium leading-tight',
-                step.state === 'upcoming' ? 'text-muted-foreground' : 'text-foreground',
+                step.state === 'upcoming' ? 'text-muted-foreground' : 'text-[var(--brand-navy)]',
               )}
             >
               {step.label}

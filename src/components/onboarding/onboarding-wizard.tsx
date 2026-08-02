@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, ReactNode, useState } from 'react';
+import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -26,7 +26,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
-import { Separator } from '@/components/ui/separator';
 import { Alert } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { SORTED_MCC_CODES, findMccByCode, formatMccLabel } from '@/lib/mcc-codes';
@@ -76,7 +75,7 @@ function ReviewSection({
   return (
     <div className="rounded-lg border border-border bg-muted/30 p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h4>
+        <h4 className="section-heading">{title}</h4>
         <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={onEdit}>
           <Pencil className="mr-1 h-3 w-3" /> Edit
         </Button>
@@ -162,6 +161,13 @@ export function OnboardingWizard() {
   const router = useRouter();
   const { accessToken } = useAuth();
   const [step, setStep] = useState(0);
+  const [stepDirection, setStepDirection] = useState<'forward' | 'backward'>('forward');
+  const prevStepRef = useRef(0);
+
+  useEffect(() => {
+    setStepDirection(step >= prevStepRef.current ? 'forward' : 'backward');
+    prevStepRef.current = step;
+  }, [step]);
   const [error, setError] = useState<string | null>(null);
   const [applicationId, setApplicationId] = useState<string | null>(null);
   const [onboardingType, setOnboardingType] = useState<'MERCHANT' | 'SCHOOL'>('MERCHANT');
@@ -211,7 +217,7 @@ export function OnboardingWizard() {
     return {
       key: label,
       label,
-      icon: <Icon className="h-4 w-4" />,
+      icon: <Icon className="h-4 w-4" strokeWidth={2.25} />,
       state: i < step ? 'done' : i === step ? 'active' : 'upcoming',
     };
   });
@@ -351,7 +357,7 @@ export function OnboardingWizard() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto w-full max-w-[var(--form-max-width)] space-y-6">
       <div className="flex items-center gap-3">
         <Link href="/onboarding">
           <Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
@@ -375,7 +381,13 @@ export function OnboardingWizard() {
               {step === 4 && 'Review and submit for checker approval.'}
             </CardDescription>
           </CardHeader>
-          <CardContent key={step} className="wizard-step-enter space-y-4">
+          <CardContent
+            key={step}
+            className={cn(
+              'space-y-4',
+              stepDirection === 'forward' ? 'wizard-step-enter-forward' : 'wizard-step-enter-backward',
+            )}
+          >
             {step === 0 && (
               <div className="grid gap-4 sm:grid-cols-2">
                 <button
@@ -438,21 +450,20 @@ export function OnboardingWizard() {
 
             {step === 1 && (
               <div className="space-y-6">
-                <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Business Identity</h3>
-                  <Separator className="mb-3 mt-1.5" />
-                  <div className="grid gap-3 sm:grid-cols-2">
+                <div className="form-section">
+                  <h3 className="section-heading">Business Identity</h3>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     <div className="sm:col-span-2">
-                      <Label>Legal Name *</Label>
+                      <Label required>Legal Name</Label>
                       <Input required value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} />
                     </div>
                     <div className="sm:col-span-2">
-                      <Label>Trading / Display Name *</Label>
+                      <Label required>Trading / Display Name</Label>
                       <Input required value={form.tradingName} onChange={(e) => setForm({ ...form, tradingName: e.target.value })} />
                     </div>
                     {onboardingType === 'MERCHANT' && (
                       <div className="sm:col-span-2">
-                        <Label htmlFor="business-type">Business Type *</Label>
+                        <Label htmlFor="business-type" required>Business Type</Label>
                         <Combobox
                           id="business-type"
                           required
@@ -465,12 +476,12 @@ export function OnboardingWizard() {
                     )}
                     {onboardingType === 'MERCHANT' && (
                       <div>
-                        <Label>MCC *</Label>
+                        <Label required>MCC</Label>
                         <Input
                           required
                           pattern="[0-9]{4}"
                           readOnly={!!form.businessType}
-                          className={form.businessType ? 'bg-muted/40 text-muted-foreground' : undefined}
+                          className={form.businessType ? 'field-derived' : undefined}
                           value={form.mcc}
                           onChange={(e) => setForm({ ...form, mcc: e.target.value })}
                         />
@@ -499,7 +510,9 @@ export function OnboardingWizard() {
                       <Input value={form.vrn} onChange={(e) => setForm({ ...form, vrn: e.target.value })} />
                     </div>
                     <div>
-                      <Label>{onboardingType === 'SCHOOL' ? 'School Registration No *' : 'Business Registration No'}</Label>
+                      <Label required={onboardingType === 'SCHOOL'}>
+                        {onboardingType === 'SCHOOL' ? 'School Registration No' : 'Business Registration No'}
+                      </Label>
                       <Input required={onboardingType === 'SCHOOL'} value={form.companyRegistrationNo} onChange={(e) => setForm({ ...form, companyRegistrationNo: e.target.value })} />
                     </div>
                     {onboardingType === 'SCHOOL' && (
@@ -511,10 +524,9 @@ export function OnboardingWizard() {
                   </div>
                 </div>
 
-                <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Location</h3>
-                  <Separator className="mb-3 mt-1.5" />
-                  <div className="grid gap-3 sm:grid-cols-2">
+                <div className="form-section">
+                  <h3 className="section-heading">Location</h3>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     <div>
                       <Label>Region</Label>
                       <Select value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value, district: '', ward: '' })}>
@@ -541,13 +553,13 @@ export function OnboardingWizard() {
                       </Select>
                     </div>
                     <div>
-                      <Label htmlFor="postcode">Postcode *</Label>
+                      <Label htmlFor="postcode" required>Postcode</Label>
                       <Input
                         id="postcode"
                         required
                         pattern="[0-9]{5}"
                         readOnly
-                        className="bg-muted/40 text-muted-foreground"
+                        className="field-derived"
                         placeholder="Select a ward"
                         value={form.postalCode}
                       />
@@ -555,16 +567,15 @@ export function OnboardingWizard() {
                   </div>
                 </div>
 
-                <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contact Details</h3>
-                  <Separator className="mb-3 mt-1.5" />
-                  <div className="grid gap-3 sm:grid-cols-2">
+                <div className="form-section">
+                  <h3 className="section-heading">Contact Details</h3>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     <div>
-                      <Label>Contact Mobile *</Label>
+                      <Label required>Contact Mobile</Label>
                       <Input required value={form.contactPhone} onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} />
                     </div>
                     <div>
-                      <Label>Contact Email *</Label>
+                      <Label required>Contact Email</Label>
                       <Input required type="email" value={form.contactEmail} onChange={(e) => setForm({ ...form, contactEmail: e.target.value })} />
                     </div>
                   </div>
@@ -575,11 +586,11 @@ export function OnboardingWizard() {
             {step === 2 && (
               <div className="grid max-w-md gap-3">
                 <div>
-                  <Label>Account Number *</Label>
+                  <Label required>Account Number</Label>
                   <Input required minLength={10} value={form.accountNumber} onChange={(e) => setForm({ ...form, accountNumber: e.target.value })} />
                 </div>
                 <div>
-                  <Label>Account Name *</Label>
+                  <Label required>Account Name</Label>
                   <Input required value={form.accountName} onChange={(e) => setForm({ ...form, accountName: e.target.value })} />
                 </div>
                 <BankSelectField
@@ -670,7 +681,7 @@ export function OnboardingWizard() {
         <div className="mt-4 flex flex-wrap justify-between gap-2">
           <div className="flex gap-2">
             {step > 0 && (
-              <Button type="button" variant="outline" onClick={() => setStep((s) => s - 1)}>
+              <Button type="button" variant="secondary" onClick={() => setStep((s) => s - 1)}>
                 <ArrowLeft className="mr-1 h-4 w-4" /> Back
               </Button>
             )}

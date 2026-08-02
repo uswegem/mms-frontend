@@ -23,10 +23,7 @@ export function BankSelectField({
 }: BankSelectFieldProps) {
   return (
     <div className="space-y-2">
-      <Label>
-        {label}
-        {required && ' *'}
-      </Label>
+      <Label required={required}>{label}</Label>
       <Select
         required={required}
         value={value || DEFAULT_BANK_SWIFT}
