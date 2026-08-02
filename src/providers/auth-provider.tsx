@@ -22,6 +22,10 @@ import { getMyPermissions } from '@/lib/authz-api';
 const TOKEN_KEY = 'mms_access_token';
 /** Refresh this many ms before access-token expiry. */
 const REFRESH_SKEW_MS = 60_000;
+/** Circuit breaker: stop attempting refresh after this many consecutive failures. */
+const MAX_CONSECUTIVE_REFRESH_FAILURES = 3;
+/** Cooldown before the circuit breaker allows refresh attempts again. */
+const REFRESH_COOLDOWN_MS = 30_000;
 
 interface AuthContextValue {
   accessToken: string | null;
@@ -46,6 +50,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [livePermissions, setLivePermissions] = useState<JwtClaims | null>(null);
   const refreshInFlight = useRef<Promise<string | null> | null>(null);
+  const consecutiveRefreshFailures = useRef(0);
+  const refreshBlockedUntil = useRef(0);
+  /** Token for which a permissions-401 refresh has already been attempted, to prevent looping. */
+  const permsRefreshAttemptedFor = useRef<string | null>(null);
 
   const setSession = useCallback((token: string) => {
     setAccessToken(token);
@@ -61,12 +69,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshAccessToken = useCallback(async (): Promise<string | null> => {
     if (refreshInFlight.current) return refreshInFlight.current;
 
+    if (
+      consecutiveRefreshFailures.current >= MAX_CONSECUTIVE_REFRESH_FAILURES &&
+      Date.now() < refreshBlockedUntil.current
+    ) {
+      return null;
+    }
+
     refreshInFlight.current = (async () => {
       try {
         const refreshed = await refreshSession();
+        consecutiveRefreshFailures.current = 0;
         setSession(refreshed.accessToken);
         return refreshed.accessToken;
       } catch {
+        consecutiveRefreshFailures.current += 1;
+        if (consecutiveRefreshFailures.current >= MAX_CONSECUTIVE_REFRESH_FAILURES) {
+          refreshBlockedUntil.current = Date.now() + REFRESH_COOLDOWN_MS;
+        }
         clearSession();
         return null;
       } finally {
@@ -170,13 +190,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       .catch(async (err) => {
         const message = err instanceof Error ? err.message : '';
-        if (message.toLowerCase().includes('unauthorized') || message.includes('401')) {
+        const isAuthError =
+          message.toLowerCase().includes('unauthorized') || message.includes('401');
+        // Only attempt one refresh per token — otherwise a permissions endpoint that
+        // keeps rejecting the refreshed token would refresh forever.
+        if (isAuthError && permsRefreshAttemptedFor.current !== accessToken) {
+          permsRefreshAttemptedFor.current = accessToken;
           await refreshAccessToken();
           return;
         }
+        if (isAuthError) clearSession();
         setLivePermissions(null);
       });
-  }, [accessToken, refreshAccessToken]);
+  }, [accessToken, refreshAccessToken, clearSession]);
 
   const user = useMemo(
     () => livePermissions ?? (accessToken ? decodeJwt(accessToken) : null),
