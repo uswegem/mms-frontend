@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -21,15 +21,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  MerchantFormFields,
-  defaultMerchantFormValues,
-  type MerchantFormValues,
-} from '@/components/merchants/merchant-form-fields';
 import { MerchantLifecycleActions } from '@/components/merchants/merchant-lifecycle-actions';
 import {
   activateMerchant,
-  createMerchant,
   dormantMerchant,
   exportMerchantsCsv,
   listMerchants,
@@ -60,11 +54,8 @@ export function MerchantsPageContent() {
   const [searchInput, setSearchInput] = useState(searchParams.get('q') ?? '');
   const [search, setSearch] = useState(searchParams.get('q') ?? '');
   const [statusFilter, setStatusFilter] = useState('');
-  const [showCreate, setShowCreate] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [form, setForm] = useState<MerchantFormValues>(defaultMerchantFormValues);
-  const [creating, setCreating] = useState(false);
 
   const canRead = user?.permissions?.includes('merchant:read');
   const canWrite = user?.permissions?.includes('merchant:write');
@@ -109,42 +100,6 @@ export function MerchantsPageContent() {
     setError(err instanceof MerchantsApiError ? err.message : 'An unexpected error occurred');
   }
 
-  function handleFormChange(patch: Partial<MerchantFormValues>) {
-    setForm((prev) => ({ ...prev, ...patch }));
-  }
-
-  async function handleCreate(e: FormEvent) {
-    e.preventDefault();
-    setCreating(true);
-    setError(null);
-    setSuccess(null);
-    try {
-      const created = await createMerchant(token, {
-        legalName: form.legalName,
-        tradingName: form.tradingName,
-        mcc: form.mcc,
-        region: form.region,
-        district: form.district,
-        ward: form.ward,
-        postalCode: form.postalCode,
-        taxId: form.taxId || undefined,
-        isSchool: form.isSchool,
-        addressLine1: form.addressLine1 || undefined,
-        addressLine2: form.addressLine2 || undefined,
-        contactPhone: form.contactPhone || undefined,
-        contactEmail: form.contactEmail || undefined,
-      });
-      setSuccess(`Merchant "${created.tradingName}" created in DRAFT status.`);
-      setForm(defaultMerchantFormValues);
-      setShowCreate(false);
-      await queryClient.invalidateQueries({ queryKey: ['merchants'] });
-    } catch (err) {
-      handleApiError(err);
-    } finally {
-      setCreating(false);
-    }
-  }
-
   async function runAction(label: string, id: string, fn: () => Promise<unknown>) {
     setError(null);
     setSuccess(null);
@@ -173,7 +128,7 @@ export function MerchantsPageContent() {
         description="Create, search, and manage merchant lifecycle and KYC compliance."
       >
         {canWrite && (
-          <Button onClick={() => setShowCreate((s) => !s)}>
+          <Button onClick={() => router.push('/onboarding/new')}>
             <Plus className="h-4 w-4" />
             New Merchant
           </Button>
@@ -193,36 +148,6 @@ export function MerchantsPageContent() {
         <Alert variant="success" onDismiss={() => setSuccess(null)}>
           {success}
         </Alert>
-      )}
-
-      {showCreate && canWrite && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Register New Merchant</CardTitle>
-            <CardDescription>
-              Creates a merchant in DRAFT status with KYC pending. Complete KYC on the detail page
-              to activate.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <MerchantFormFields values={form} onChange={handleFormChange} idPrefix="create" />
-              <div className="flex gap-2">
-                <Button type="submit" disabled={creating}>
-                  {creating ? 'Creating…' : 'Create Merchant'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowCreate(false)}
-                  disabled={creating}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
       )}
 
       <Card>
