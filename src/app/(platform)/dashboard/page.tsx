@@ -264,9 +264,11 @@ export default function DashboardPage() {
                 </div>
               ))}
               <div className="border-t border-border px-6 py-3">
-                <Button variant="outline" size="sm" className="h-8 w-full text-xs" disabled>
-                  Review All Approvals
-                </Button>
+                <Link href="/approvals">
+                  <Button variant="outline" size="sm" className="h-8 w-full text-xs">
+                    Review All Approvals
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
