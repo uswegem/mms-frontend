@@ -106,7 +106,7 @@ export default function MerchantDetailPage({
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="flex items-center gap-3 p-4">
-            <Building2 className="h-8 w-8 text-primary" />
+            <Building2 className="h-8 w-8 text-[var(--brand-navy)]" />
             <div>
               <p className="text-xs text-muted-foreground">KYC Status</p>
               <Badge variant={statusBadgeVariant(merchant.kyc?.status ?? 'PENDING')}>
@@ -117,7 +117,7 @@ export default function MerchantDetailPage({
         </Card>
         <Card>
           <CardContent className="flex items-center gap-3 p-4">
-            <QrCode className="h-8 w-8 text-primary" />
+            <QrCode className="h-8 w-8 text-[var(--brand-navy)]" />
             <div>
               <p className="text-xs text-muted-foreground">QR Codes</p>
               <p className="text-sm font-medium">
@@ -130,7 +130,7 @@ export default function MerchantDetailPage({
         </Card>
         <Card>
           <CardContent className="flex items-center gap-3 p-4">
-            <Wallet className="h-8 w-8 text-primary" />
+            <Wallet className="h-8 w-8 text-[var(--brand-navy)]" />
             <div>
               <p className="text-xs text-muted-foreground">Settlement Account</p>
               <p className="text-sm font-medium">Not configured</p>
@@ -139,7 +139,7 @@ export default function MerchantDetailPage({
         </Card>
         <Card>
           <CardContent className="flex items-center gap-3 p-4">
-            <School className="h-8 w-8 text-primary" />
+            <School className="h-8 w-8 text-[var(--brand-navy)]" />
             <div>
               <p className="text-xs text-muted-foreground">School Merchant</p>
               <p className="text-sm font-medium">{merchant.isSchool ? 'Yes' : 'No'}</p>

@@ -26,7 +26,7 @@ export function MerchantPortfolio({ total, items }: MerchantPortfolioProps) {
           </div>
           <Link
             href="/merchants"
-            className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            className="flex items-center gap-1 text-xs font-medium text-link"
           >
             View all <ArrowRight className="h-3 w-3" />
           </Link>

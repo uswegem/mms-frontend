@@ -170,7 +170,7 @@ export default function LoginPage() {
           <Card className="border-border shadow-[var(--shadow-lg)]">
             <CardHeader className="space-y-1">
               <div className="flex items-center gap-2">
-                <Lock className="h-5 w-5 text-primary" />
+                <Lock className="h-5 w-5 text-[var(--brand-navy)]" />
                 <CardTitle>
                   {mode === 'login'
                     ? 'Sign in to your account'
@@ -217,7 +217,7 @@ export default function LoginPage() {
                       <Label htmlFor="password">Password</Label>
                       <button
                         type="button"
-                        className="text-xs text-primary hover:underline"
+                        className="text-xs text-link"
                         onClick={() => {
                           setMode('forgot');
                           setError(null);

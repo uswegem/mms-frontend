@@ -181,7 +181,7 @@ export function RolesPageContent() {
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="flex items-center gap-3 p-4">
-            <Shield className="h-8 w-8 text-primary" />
+            <Shield className="h-8 w-8 text-[var(--brand-navy)]" />
             <div>
               <p className="text-xs text-muted-foreground">Roles</p>
               <p className="text-2xl font-semibold">{roles.length}</p>

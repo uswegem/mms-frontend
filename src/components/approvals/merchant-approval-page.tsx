@@ -505,7 +505,7 @@ export function MerchantApprovalPage() {
                         <TableCell>
                           <button
                             type="button"
-                            className="text-left font-medium text-primary hover:underline"
+                            className="text-left font-medium text-link"
                             onClick={() => setActiveTaskId(task.id)}
                           >
                             {merchantLabel(application, task)}

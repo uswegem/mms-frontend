@@ -108,8 +108,8 @@
   --color-sidebar-muted: var(--sidebar-muted);
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-border: var(--sidebar-border);
-  --font-sans: var(--font-inter);
-  --font-serif: var(--font-source-serif);
+  --font-sans: var(--font-public-sans);
+  --font-serif: var(--font-lora);
   --font-mono: var(--font-geist-mono);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
@@ -222,6 +222,19 @@ body {
   background: var(--muted);
   color: var(--foreground);
   cursor: not-allowed;
+}
+
+/* Text links on light/card backgrounds — navy, not brand gold. Gold text
+   is 1.51:1 on white (fails even the 3:1 non-text minimum); navy is
+   15.39:1, passing WCAG AAA. Reserve gold for fills/badges/dark
+   backgrounds where it actually has contrast. */
+.text-link {
+  color: var(--brand-navy);
+  text-underline-offset: 2px;
+}
+
+.text-link:hover {
+  text-decoration: underline;
 }
 
 .dropzone {

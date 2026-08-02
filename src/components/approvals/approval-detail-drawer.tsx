@@ -258,7 +258,7 @@ export function ApprovalDetailDrawer({
           {application && (
             <Link
               href={`/onboarding/${application.id}`}
-              className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+              className="inline-flex items-center gap-1.5 text-sm text-link"
             >
               Open full onboarding record
               <ExternalLink className="h-3.5 w-3.5" />

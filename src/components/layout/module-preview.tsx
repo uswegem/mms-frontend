@@ -28,7 +28,7 @@ export function ModulePreview({
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Icon className="h-5 w-5 text-primary" />
+              <Icon className="h-5 w-5 text-[var(--brand-navy)]" />
               Module Overview
             </CardTitle>
             <CardDescription>
@@ -54,7 +54,7 @@ export function ModulePreview({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-lg border border-border bg-muted/30 p-4 text-center">
-              <p className="text-3xl font-semibold text-primary">—</p>
+              <p className="text-3xl font-semibold text-[var(--brand-navy)]">—</p>
               <p className="mt-1 text-xs text-muted-foreground">Live data pending API</p>
             </div>
             <p className="text-xs text-muted-foreground">

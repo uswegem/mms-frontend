@@ -1,17 +1,17 @@
 import type { Metadata } from 'next';
-import { Inter, Geist_Mono, Source_Serif_4 } from 'next/font/google';
+import { Public_Sans, Geist_Mono, Lora } from 'next/font/google';
 import './globals.css';
 import { QueryProvider } from '@/providers/query-provider';
 import { AuthProvider } from '@/providers/auth-provider';
 
-const inter = Inter({
-  variable: '--font-inter',
+const publicSans = Public_Sans({
+  variable: '--font-public-sans',
   subsets: ['latin'],
   display: 'swap',
 });
 
-const sourceSerif = Source_Serif_4({
-  variable: '--font-source-serif',
+const lora = Lora({
+  variable: '--font-lora',
   subsets: ['latin'],
   display: 'swap',
   weight: ['500', '600', '700'],
@@ -36,7 +36,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${sourceSerif.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${publicSans.variable} ${lora.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body
