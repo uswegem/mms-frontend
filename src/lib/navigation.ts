@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   QrCode,
   Receipt,
+  ReceiptText,
   Scale,
   School,
   Settings,
@@ -23,6 +24,7 @@ export interface NavItem {
   href: string;
   icon: LucideIcon;
   permission?: string;
+  permissions?: string[];
   badge?: string;
   children?: NavItem[];
 }
@@ -87,7 +89,15 @@ export const NAV_SECTIONS: NavSection[] = [
         href: '/school-fees',
         icon: School,
         permission: 'merchant:read',
-        badge: 'Soon',
+        badge: 'M4',
+      },
+      {
+        id: 'payment-ledger',
+        label: 'Payment Ledger',
+        href: '/payment-ledger',
+        icon: ReceiptText,
+        permissions: ['school:payment:read', 'merchant:read'],
+        badge: 'M4',
       },
       {
         id: 'transactions',
@@ -111,7 +121,7 @@ export const NAV_SECTIONS: NavSection[] = [
         href: '/reconciliation',
         icon: Scale,
         permission: 'merchant:read',
-        badge: 'Soon',
+        badge: 'M4',
       },
     ],
   },
@@ -187,7 +197,8 @@ export function filterNavByPermissions(
     .map((section) => ({
       ...section,
       items: section.items.filter(
-        (item) => !item.permission || permissions.includes(item.permission),
+        (item) => (!item.permission || permissions.includes(item.permission))
+          && (!item.permissions || item.permissions.some((permission) => permissions.includes(permission))),
       ),
     }))
     .filter((section) => section.items.length > 0);
@@ -204,6 +215,7 @@ export function getBreadcrumbs(pathname: string): { label: string; href?: string
     '/onboarding': 'Merchant Onboarding',
     '/qr': 'QR Management',
     '/school-fees': 'School Fee Collection',
+    '/payment-ledger': 'Payment Ledger',
     '/transactions': 'Transactions',
     '/settlements': 'Settlements',
     '/reconciliation': 'Reconciliation',
