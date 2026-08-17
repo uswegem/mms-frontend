@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import { Lock } from 'lucide-react';
 import {
   AuthApiError,
+  decodeJwt,
   forgotPassword,
   resetPassword,
 } from '@/lib/auth-api';
+import { postLoginRedirect } from '@/lib/permissions';
 import { useAuth } from '@/providers/auth-provider';
 import { BrandLogo } from '@/components/layout/brand-logo';
 import { Button } from '@/components/ui/button';
@@ -24,7 +26,7 @@ import { Alert } from '@/components/ui/alert';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isAuthenticated, isLoading } = useAuth();
+  const { login, isAuthenticated, isLoading, user } = useAuth();
   const [mode, setMode] = useState<'login' | 'forgot' | 'reset'>('login');
   const [email, setEmail] = useState('admin@mms.local');
   const [password, setPassword] = useState('');
@@ -40,9 +42,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.replace('/dashboard');
+      router.replace(postLoginRedirect(user?.roles));
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, user, router]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -50,8 +52,9 @@ export default function LoginPage() {
     setSuccess(null);
     setSubmitting(true);
     try {
-      await login(email, password, showMfa ? mfaCode : undefined);
-      router.push('/dashboard');
+      const result = await login(email, password, showMfa ? mfaCode : undefined);
+      const claims = decodeJwt(result.accessToken);
+      router.push(postLoginRedirect(claims?.roles));
     } catch (err) {
       if (err instanceof AuthApiError) {
         if (err.mfaRequired) {

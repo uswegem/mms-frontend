@@ -1,5 +1,18 @@
 import { NAV_SECTIONS } from '@/lib/navigation';
 
+/** Mirrors the backend's MERCHANT_LEVEL_ROLES (system-role.enum.ts) — kept
+ * in sync by hand since there's no shared package between the two repos. */
+const MERCHANT_LEVEL_ROLES = ['MERCHANT_ADMIN', 'MERCHANT_USER', 'SCHOOL_ADMIN'];
+
+/** True for a role set that lands in the merchant portal, not the back office. */
+export function isMerchantScopedRoles(roles: string[] | undefined): boolean {
+  return (roles ?? []).some((r) => MERCHANT_LEVEL_ROLES.includes(r));
+}
+
+export function postLoginRedirect(roles: string[] | undefined): string {
+  return isMerchantScopedRoles(roles) ? '/merchant/dashboard' : '/dashboard';
+}
+
 export function hasPermission(
   permissions: string[] | undefined,
   required: string | string[],
