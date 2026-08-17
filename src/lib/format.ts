@@ -44,3 +44,12 @@ export function formatDateTime(iso: string): string {
     minute: '2-digit',
   });
 }
+
+/**
+ * Groups a Lipa Namba digit string left-to-right in blocks of 4.
+ *   "7800000026"  →  "7800 0000 26"
+ *   "22112025"    →  "2211 2025"
+ */
+export function formatLipaNamba(value: string): string {
+  return value.replace(/(\d{4})(?=\d)/g, '$1 ');
+}

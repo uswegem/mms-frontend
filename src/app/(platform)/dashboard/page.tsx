@@ -7,6 +7,7 @@ import {
   ArrowRight,
   CheckCircle2,
   Clock,
+  GraduationCap,
   QrCode,
   Scale,
   Wallet,
@@ -69,7 +70,7 @@ export default function DashboardPage() {
         isRefreshing={merchantsQuery.isFetching}
       />
 
-      {/* Primary KPI strip */}
+      {/* Primary KPI strip — Merchants tile is live; the other three are preview data */}
       <HeroMetrics
         metrics={[
           {
@@ -77,27 +78,54 @@ export default function DashboardPage() {
             value: formatCurrency(DASHBOARD_PREVIEW.todayVolume, 'TZS', true),
             change: { value: 12.4, label: 'vs yesterday' },
             sublabel: "Today's payment volume",
+            badge: 'Preview data',
           },
           {
             label: 'Transactions',
             value: formatNumber(DASHBOARD_PREVIEW.todayTransactions),
             change: { value: 8.2, label: 'vs yesterday' },
             sublabel: `${DASHBOARD_PREVIEW.failedTransactions} failed · ${successRate}% success`,
+            badge: 'Preview data',
           },
           {
             label: 'Merchants',
             value: formatNumber(total),
             change: { value: 4.2, label: 'vs last month' },
             sublabel: `${active} active · ${pending} pending onboarding`,
+            // No badge — this is live data from merchantsQuery
           },
           {
             label: 'Revenue MTD',
             value: formatCurrency(DASHBOARD_PREVIEW.revenueMtd, 'TZS', true),
             change: { value: 8.3, label: 'vs last month' },
             sublabel: 'MDR & acquirer fees',
+            badge: 'Preview data',
           },
         ]}
       />
+
+      {/* School Fee Collection CTA */}
+      <Card className="border-[var(--brand-yellow)]/30 bg-gradient-to-r from-[var(--brand-yellow)]/5 to-transparent">
+        <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--brand-yellow)]/15">
+              <GraduationCap className="h-5 w-5 text-[var(--brand-yellow)]" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold">School Fee Collection</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Onboard a school to accept fee payments via QR scan. Students get a personal Lipa Namba for contactless collection.
+              </p>
+            </div>
+          </div>
+          <Link href="/onboarding" className="shrink-0">
+            <Button size="sm" className="gap-1.5 whitespace-nowrap">
+              Start School Onboarding
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
 
       {/* Main analytics grid */}
       <div className="grid gap-6 lg:grid-cols-12">
@@ -112,7 +140,7 @@ export default function DashboardPage() {
                 value: formatNumber(weekTotal),
                 change: '+14.2% vs prior week',
               }}
-              badge="Live preview"
+              badge="Preview data"
             >
               <BarChart data={TRANSACTION_VOLUME} height={180} />
             </ChartPanel>
@@ -125,7 +153,7 @@ export default function DashboardPage() {
                 value: `${revenueLatest}M`,
                 change: '+5.4% vs May',
               }}
-              badge="Live preview"
+              badge="Preview data"
             >
               <AreaChart data={REVENUE_TREND} height={180} formatValue={(v) => `${v}M`} />
             </ChartPanel>
@@ -192,6 +220,7 @@ export default function DashboardPage() {
           />
 
           <OperationsPanel
+            badge="Preview data"
             items={[
               {
                 label: 'Settlement Batches',
@@ -234,9 +263,14 @@ export default function DashboardPage() {
                   <CardTitle className="text-sm font-semibold">Pending Approvals</CardTitle>
                   <CardDescription className="text-xs">Maker-checker queue</CardDescription>
                 </div>
-                <Badge variant="warning" className="text-[10px]">
-                  {PENDING_APPROVALS.length}
-                </Badge>
+                <div className="flex items-center gap-1.5">
+                  <span className="rounded border border-border px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
+                    Preview data
+                  </span>
+                  <Badge variant="warning" className="text-[10px]">
+                    {PENDING_APPROVALS.length}
+                  </Badge>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-0 p-0">

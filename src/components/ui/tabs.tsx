@@ -12,14 +12,23 @@ const TabsContext = createContext<TabsContextValue | null>(null);
 
 export function Tabs({
   defaultValue,
+  value,
+  onValueChange,
   children,
   className,
 }: {
-  defaultValue: string;
+  defaultValue?: string;
+  value?: string;
+  onValueChange?: (v: string) => void;
   children: React.ReactNode;
   className?: string;
 }) {
-  const [active, setActive] = useState(defaultValue);
+  const [internal, setInternal] = useState(defaultValue ?? '');
+  const active = value ?? internal;
+  const setActive = (v: string) => {
+    if (onValueChange) onValueChange(v);
+    else setInternal(v);
+  };
   return (
     <TabsContext.Provider value={{ active, setActive }}>
       <div className={className}>{children}</div>

@@ -6,6 +6,8 @@ interface HeroMetric {
   value: string;
   change?: { value: number; label: string };
   sublabel?: string;
+  /** If set, renders a small "preview data" tag in the tile header. */
+  badge?: string;
 }
 
 interface HeroMetricsProps {
@@ -20,9 +22,16 @@ export function HeroMetrics({ metrics }: HeroMetricsProps) {
           const positive = m.change && m.change.value >= 0;
           return (
             <div key={m.label} className={cn('px-6 py-5', i === 0 && 'bg-[var(--accent-muted)]')}>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                {m.label}
-              </p>
+              <div className="flex items-center justify-between gap-1">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {m.label}
+                </p>
+                {m.badge && (
+                  <span className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
+                    {m.badge}
+                  </span>
+                )}
+              </div>
               <p className="mt-2 text-3xl font-semibold tracking-tight text-foreground tabular-nums">
                 {m.value}
               </p>

@@ -36,7 +36,8 @@ export function BrandLogo({
           width={36}
           height={36}
           priority
-          className={cn('h-9 w-auto max-w-none object-left object-contain', imageClassName)}
+          className={cn('max-w-none object-left object-contain', imageClassName)}
+          style={{ height: 'auto', width: 'auto' }}
         />
       </div>
     );
@@ -50,8 +51,8 @@ export function BrandLogo({
         width={Math.round(height * 3.4)}
         height={height}
         priority
-        className={cn('h-auto w-auto object-contain', imageClassName)}
-        style={{ maxHeight: height, width: 'auto' }}
+        className={cn('object-contain', imageClassName)}
+        style={{ height: 'auto', width: 'auto' }}
       />
       {showTagline && variant === 'sidebar' && (
         <div className="min-w-0 border-l border-white/15 pl-3">

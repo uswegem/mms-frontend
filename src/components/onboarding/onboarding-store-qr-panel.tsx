@@ -133,7 +133,7 @@ export function OnboardingStoreQrPanel({
               </p>
               <ul className="mt-3 space-y-2">
                 <PrereqItem
-                  ok={['SUBMITTED', 'PENDING_KYC_APPROVAL', 'PENDING_RISK_REVIEW', 'BANK_VALIDATED', 'TPS_REGISTERED', 'ALIAS_QR_REGISTERED', 'ACTIVE'].includes(app.status) && app.status !== 'DRAFT'}
+                  ok={app.status !== 'DRAFT'}
                   label="Application submitted"
                   detail={formatOnboardingStatus(app.status)}
                 />
