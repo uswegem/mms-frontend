@@ -1,0 +1,100 @@
+name: CI - Frontend (mms-frontend)
+
+# Runs automatically on PRs targeting main, and can also be triggered manually.
+# For this to actually gate merges, configure branch protection on `main` in
+# this repo's GitHub settings to require the three jobs below as passing
+# status checks, plus at least one PR approval.
+on:
+  workflow_dispatch:
+    inputs:
+      run_tests:
+        description: "Run test suite (in addition to lint/typecheck/build)"
+        required: false
+        default: true
+        type: boolean
+  pull_request:
+    # This repo has no `main` — `development` is the default branch
+    # (origin/HEAD points at it) and `um_dev` is the active integration
+    # branch this session has been pushing to. Adjust here (and in the
+    # branch-protection setting) if the intended default branch changes.
+    branches: [development, um_dev]
+
+jobs:
+  lint-typecheck-test-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      NODE_ENV: test
+      NEXT_TELEMETRY_DISABLED: "1"
+      # NEXT_PUBLIC_API_URL and other build-time public env vars should be
+      # added as repo secrets/variables and referenced here once known.
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck --if-present
+
+      - name: Unit / component tests
+        if: ${{ inputs.run_tests != false }}
+        run: npm run test --if-present -- --coverage
+
+      - name: Build
+        run: npm run build
+
+      - name: Dependency audit (blocking)
+        run: npm audit --audit-level=high
+
+      - name: Upload build output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: .next/
+          retention-days: 7
+
+  sast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
