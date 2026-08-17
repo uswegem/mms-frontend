@@ -9,7 +9,6 @@ import {
   QrCode,
   Receipt,
   Scale,
-  School,
   Settings,
   Shield,
   Users,
@@ -30,6 +29,7 @@ export interface NavItem {
 export interface NavSection {
   label: string;
   items: NavItem[];
+  muted?: boolean;
 }
 
 export const NAV_SECTIONS: NavSection[] = [
@@ -68,24 +68,36 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: Shield,
         permission: 'approval:task:read',
       },
+    ],
+  },
+  {
+    label: 'Administration',
+    items: [
+      {
+        id: 'users',
+        label: 'User Management',
+        href: '/users',
+        icon: Users,
+        permission: 'user:read',
+      },
+      {
+        id: 'roles',
+        label: 'Roles & Permissions',
+        href: '/roles',
+        icon: Shield,
+        permission: 'authz:role:read',
+      },
+    ],
+  },
+  {
+    label: 'Coming Soon',
+    muted: true,
+    items: [
       {
         id: 'qr',
         label: 'QR Management',
         href: '/qr',
         icon: QrCode,
-        permission: 'merchant:read',
-        badge: 'Soon',
-      },
-    ],
-  },
-  {
-    label: 'Payments',
-    items: [
-      {
-        id: 'school-fees',
-        label: 'School Fee Collection',
-        href: '/school-fees',
-        icon: School,
         permission: 'merchant:read',
         badge: 'Soon',
       },
@@ -113,11 +125,6 @@ export const NAV_SECTIONS: NavSection[] = [
         permission: 'merchant:read',
         badge: 'Soon',
       },
-    ],
-  },
-  {
-    label: 'Insights',
-    items: [
       {
         id: 'reports',
         label: 'Reports & Analytics',
@@ -125,25 +132,6 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: BarChart3,
         permission: 'merchant:read',
         badge: 'Soon',
-      },
-    ],
-  },
-  {
-    label: 'Administration',
-    items: [
-      {
-        id: 'users',
-        label: 'User Management',
-        href: '/users',
-        icon: Users,
-        permission: 'user:read',
-      },
-      {
-        id: 'roles',
-        label: 'Roles & Permissions',
-        href: '/roles',
-        icon: Shield,
-        permission: 'authz:role:read',
       },
       {
         id: 'audit',
@@ -204,8 +192,8 @@ export function getBreadcrumbs(pathname: string): { label: string; href?: string
     '/dashboard': 'Executive Dashboard',
     '/merchants': 'Merchant Management',
     '/onboarding': 'Merchant Onboarding',
+    '/approvals': 'Checker Inbox',
     '/qr': 'QR Management',
-    '/school-fees': 'School Fee Collection',
     '/transactions': 'Transactions',
     '/settlements': 'Settlements',
     '/reconciliation': 'Reconciliation',

@@ -25,14 +25,24 @@ const dotStyles = {
 
 interface OperationsPanelProps {
   items: OpsItem[];
+  badge?: string;
 }
 
-export function OperationsPanel({ items }: OperationsPanelProps) {
+export function OperationsPanel({ items, badge }: OperationsPanelProps) {
   return (
     <Card className="h-full">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold">Operations Health</CardTitle>
-        <CardDescription className="text-xs">Settlement, reconciliation & network status</CardDescription>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <CardTitle className="text-sm font-semibold">Operations Health</CardTitle>
+            <CardDescription className="text-xs">Settlement, reconciliation & network status</CardDescription>
+          </div>
+          {badge && (
+            <span className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
+              {badge}
+            </span>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-2">
         {items.map((item) => {

@@ -3,6 +3,10 @@
 /* ─── Letshego Faidika Bank — exact logo palette only ─── */
 /* Sampled from logo asset: #000000 · #FECD07 · #FFFFFF */
 :root {
+  /* System font stacks — no network request, instant render */
+  --font-inter: system-ui, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-geist-mono: 'Cascadia Code', 'Cascadia Mono', 'JetBrains Mono', 'Fira Code', 'Consolas', 'Courier New', monospace;
+
   --brand-black: #000000;
   --brand-yellow: #fecd07;
   --brand-white: #ffffff;

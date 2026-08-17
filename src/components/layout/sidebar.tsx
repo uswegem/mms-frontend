@@ -35,7 +35,10 @@ export function Sidebar({ collapsed, onToggle, permissions }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         {sections.map((section, si) => (
-          <div key={section.label} className={si > 0 ? 'mt-6' : ''}>
+          <div
+            key={section.label}
+            className={cn(si > 0 ? 'mt-6' : '', section.muted && 'opacity-50')}
+          >
             {!collapsed && (
               <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-sidebar-muted">
                 {section.label}
@@ -44,8 +47,9 @@ export function Sidebar({ collapsed, onToggle, permissions }: SidebarProps) {
             <ul className="space-y-0.5">
               {section.items.map((item) => {
                 const isActive =
-                  pathname === item.href ||
-                  (item.href !== '/dashboard' && pathname.startsWith(item.href));
+                  !section.muted &&
+                  (pathname === item.href ||
+                    (item.href !== '/dashboard' && pathname.startsWith(item.href)));
                 const Icon = item.icon;
                 return (
                   <li key={item.id}>

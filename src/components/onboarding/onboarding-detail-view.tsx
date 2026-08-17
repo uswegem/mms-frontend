@@ -44,6 +44,8 @@ import {
   formatAuditAction,
   type OnboardingApplication,
 } from '@/lib/onboarding-api';
+import { RejectModal, ONBOARDING_REJECTION_CODES } from '@/components/ui/reject-modal';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
 
 export function OnboardingDetailView({ id }: { id: string }) {
   const { accessToken, user } = useAuth();
@@ -51,6 +53,7 @@ export function OnboardingDetailView({ id }: { id: string }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('profile');
   const [accountNumber, setAccountNumber] = useState('');
   const [accountName, setAccountName] = useState('');
   const [bankCode, setBankCode] = useState(DEFAULT_BANK_SWIFT);
@@ -139,9 +142,10 @@ export function OnboardingDetailView({ id }: { id: string }) {
         token={token}
         id={id}
         run={run}
+        onGoToSettlement={() => setActiveTab('settlement')}
       />
 
-      <Tabs defaultValue="profile">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex flex-wrap h-auto gap-1">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="kyc">KYC</TabsTrigger>
@@ -386,6 +390,31 @@ export function OnboardingDetailView({ id }: { id: string }) {
   );
 }
 
+const STATUS_GUIDANCE: Partial<Record<string, string>> = {
+  DRAFT: 'Complete the application and submit it for maker review.',
+  SUBMITTED: 'Review the application and send it for checker approval.',
+  UNDER_REVIEW: 'Waiting for checker to approve in the Checker Inbox.',
+  PENDING_KYC_APPROVAL: 'Review KYC documents and approve or reject.',
+  PENDING_RISK_REVIEW: 'Conduct risk assessment and approve or reject.',
+  PENDING_BANK_VALIDATION: 'Verify the settlement bank account via CBS.',
+  BANK_VALIDATION_FAILED: 'Bank verification failed. Retry or reject.',
+  BANK_VALIDATED: 'Register the merchant with TIPS (TANQR Interbank Payment System).',
+  PENDING_TPS_REGISTRATION: 'TIPS registration in progress.',
+  TPS_REGISTRATION_FAILED: 'TIPS registration failed. Retry or reject.',
+  TPS_REGISTERED: 'Register the store alias and generate the QR code.',
+  ALIAS_QR_FAILED: 'Alias/QR registration failed. Retry or reject.',
+  ALIAS_QR_REGISTERED: 'Alias and QR issued. Configure settlement terms to continue.',
+  PENDING_SETTLEMENT_SETUP: 'Submit settlement configuration for approval.',
+  SETTLEMENT_APPROVAL_PENDING: 'Review and approve settlement configuration.',
+  SETTLEMENT_REJECTED: 'Settlement was rejected. Reconfigure and resubmit.',
+  SETTLEMENT_APPROVED: 'All steps complete. Ready to activate the merchant.',
+  READY_FOR_ACTIVATION: 'Activate the merchant to complete onboarding.',
+  ACTIVE: 'Onboarding complete — merchant is live.',
+  REJECTED: 'Application rejected. Correct issues and resubmit.',
+  KYC_REJECTED: 'KYC was rejected. Correct documents and resubmit.',
+  RISK_REJECTED: 'Risk review failed. Correct and resubmit.',
+};
+
 function WorkflowActions({
   app,
   canWrite,
@@ -395,6 +424,7 @@ function WorkflowActions({
   token,
   id,
   run,
+  onGoToSettlement,
 }: {
   app: OnboardingApplication;
   canWrite: boolean;
@@ -404,68 +434,255 @@ function WorkflowActions({
   token: string;
   id: string;
   run: (label: string, fn: () => Promise<unknown>) => Promise<void>;
+  onGoToSettlement: () => void;
 }) {
+  const { status } = app;
+  const entity = app.merchant.isSchool ? 'School' : 'Merchant';
+  const guidance = STATUS_GUIDANCE[status];
+
+  // ── Modal state ────────────────────────────────────────────────────────────
+  type RejectKind = 'reject' | 'sendBack' | 'rejectKyc';
+  const [rejectKind, setRejectKind] = useState<RejectKind | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{
+    label: string;
+    description: string;
+    fn: (comment?: string) => Promise<unknown>;
+  } | null>(null);
+  const [modalLoading, setModalLoading] = useState(false);
+
+  async function handleRejectConfirm(params: { code?: string; remarks: string }) {
+    setModalLoading(true);
+    if (rejectKind === 'reject') {
+      await run('Reject', () =>
+        rejectOnboarding(token, id, params.code ?? 'INCOMPLETE_KYC', params.remarks),
+      );
+    } else if (rejectKind === 'sendBack') {
+      await run('Send back', () => sendBackOnboarding(token, id, params.remarks));
+    } else if (rejectKind === 'rejectKyc') {
+      await run('KYC rejected', () =>
+        rejectKyc(token, id, params.remarks, params.code ?? 'INCOMPLETE_KYC'),
+      );
+    }
+    setModalLoading(false);
+    setRejectKind(null);
+  }
+
+  async function handleConfirmAction(comment?: string) {
+    if (!confirmAction) return;
+    setModalLoading(true);
+    await run(confirmAction.label, () => confirmAction.fn(comment));
+    setModalLoading(false);
+    setConfirmAction(null);
+  }
+
   return (
-    <Card>
-      <CardHeader><CardTitle className="text-base">Workflow Actions</CardTitle></CardHeader>
-      <CardContent className="flex flex-wrap gap-2">
-        {canSubmit && ['DRAFT', 'REJECTED', 'KYC_REJECTED'].includes(app.status) && (
-          <Button onClick={() => run('Submit', () => submitOnboarding(token, id))}>
-            Submit for Approval
-          </Button>
-        )}
-        {canApprove && ['PENDING_KYC_APPROVAL', 'SUBMITTED'].includes(app.status) && (
-          <Button onClick={() => run('KYC approved', () => approveKyc(token, id))}>
-            Approve KYC
-          </Button>
-        )}
-        {canApprove && app.status === 'SUBMITTED' && (
-          <Button variant="outline" onClick={() => run('Maker approve', () => makerApproveOnboarding(token, id))}>
-            Maker Approve
-          </Button>
-        )}
-        {canApprove && ['READY_FOR_ACTIVATION', 'ALIAS_QR_REGISTERED'].includes(app.status) && (
-          <Button onClick={() => run('Activate merchant', () => activateOnboarding(token, id))}>
-            Activate {app.merchant.isSchool ? 'School' : 'Merchant'}
-          </Button>
-        )}
-        {canReject && !['ACTIVE', 'REJECTED'].includes(app.status) && (
-          <>
-            <Button variant="destructive" onClick={() => run('Reject', () =>
-              rejectOnboarding(token, id, 'INCOMPLETE_KYC', 'Rejected by compliance'),
-            )}>
-              Reject
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Next Step</CardTitle>
+          {guidance && <p className="text-sm text-muted-foreground">{guidance}</p>}
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+
+          {/* ── Submit ── */}
+          {canSubmit && ['DRAFT', 'REJECTED', 'KYC_REJECTED', 'RISK_REJECTED'].includes(status) && (
+            <Button onClick={() => run('Submit', () => submitOnboarding(token, id))}>
+              Submit for Approval
             </Button>
-            {['UNDER_REVIEW', 'PENDING_KYC_APPROVAL', 'SUBMITTED'].includes(app.status) && (
-              <Button variant="outline" onClick={() => run('Send back', () =>
-                sendBackOnboarding(token, id, 'Please correct the application and resubmit'),
-              )}>
-                Send Back
+          )}
+          {canWrite && ['REJECTED', 'KYC_REJECTED', 'RISK_REJECTED'].includes(status) && (
+            <Button variant="outline" onClick={() => run('Resubmit', () => resubmitOnboarding(token, id))}>
+              Resubmit
+            </Button>
+          )}
+
+          {/* ── Maker forwards application to checker queue ── */}
+          {canApprove && status === 'SUBMITTED' && (
+            <div className="flex flex-col gap-0.5">
+              <Button
+                onClick={() =>
+                  setConfirmAction({
+                    label: 'Forwarded to checker',
+                    description: `This creates a checker-inbox task for ${app.merchant.tradingName}. A second user must approve it before the application advances.`,
+                    fn: () => makerApproveOnboarding(token, id),
+                  })
+                }
+              >
+                Forward to Checker
               </Button>
-            )}
-            {['PENDING_KYC_APPROVAL', 'UNDER_REVIEW'].includes(app.status) && (
-              <Button variant="outline" onClick={() => run('KYC rejected', () =>
-                rejectKyc(token, id, 'KYC documents incomplete'),
-              )}>
-                Reject KYC
+              <p className="text-[11px] text-muted-foreground">
+                Sends this application to the Checker Inbox for independent approval.
+              </p>
+            </div>
+          )}
+
+          {/* ── Checker inbox link ── */}
+          {['UNDER_REVIEW', 'PENDING_KYC_APPROVAL'].includes(status) && (
+            <Link href="/approvals">
+              <Button>Go to Checker Inbox</Button>
+            </Link>
+          )}
+
+          {/* ── KYC document approval (distinct from checker-inbox approval) ── */}
+          {canApprove && status === 'PENDING_KYC_APPROVAL' && (
+            <div className="flex flex-col gap-0.5">
+              <Button
+                variant="outline"
+                onClick={() =>
+                  setConfirmAction({
+                    label: 'KYC approved',
+                    description: `Marks the KYC documents for ${app.merchant.tradingName} as verified. This is a direct document review — separate from the checker-inbox flow.`,
+                    fn: (comment) => approveKyc(token, id, comment),
+                  })
+                }
+              >
+                Approve KYC
               </Button>
-            )}
-          </>
-        )}
-        {canWrite && ['REJECTED', 'KYC_REJECTED', 'RISK_REJECTED'].includes(app.status) && (
-          <Button variant="outline" onClick={() => run('Resubmit', () => resubmitOnboarding(token, id))}>
-            Resubmit
-          </Button>
-        )}
-        {['UNDER_REVIEW', 'PENDING_KYC_APPROVAL'].includes(app.status) && (
-          <Link href="/approvals"><Button variant="outline">Checker Inbox</Button></Link>
-        )}
-        {app.status === 'ACTIVE' && app.merchantId && (
-          <Link href={`/merchants/${app.merchantId}`}>
-            <Button variant="outline">View Merchant</Button>
-          </Link>
-        )}
-      </CardContent>
-    </Card>
+              <p className="text-[11px] text-muted-foreground">
+                Verifies KYC documents directly — does not go through the Checker Inbox.
+              </p>
+            </div>
+          )}
+
+          {/* ── Risk approval ── */}
+          {canApprove && status === 'PENDING_RISK_REVIEW' && (
+            <Button
+              onClick={() =>
+                setConfirmAction({
+                  label: 'Risk approved',
+                  description: `Approves the risk assessment for ${app.merchant.tradingName} and advances the application.`,
+                  fn: () => approveRisk(token, id, { riskScore: 25, riskLevel: 'LOW' }),
+                })
+              }
+            >
+              Approve Risk
+            </Button>
+          )}
+
+          {/* ── Bank verification ── */}
+          {canWrite && ['PENDING_BANK_VALIDATION', 'BANK_VALIDATION_FAILED'].includes(status) && (
+            <Button onClick={() => run('Bank verification', () => verifySettlement(token, id))}>
+              Verify Bank Account
+            </Button>
+          )}
+
+          {/* ── TIPS registration ── */}
+          {canWrite && ['BANK_VALIDATED', 'PENDING_TPS_REGISTRATION', 'TPS_REGISTRATION_FAILED'].includes(status) && (
+            <Button onClick={() => run('TIPS registration', () => registerTips(token, id))}>
+              {status === 'TPS_REGISTRATION_FAILED' ? 'Retry TIPS Registration' : 'Register TIPS'}
+            </Button>
+          )}
+
+          {/* ── Alias / QR ── */}
+          {canWrite && ['TPS_REGISTERED', 'ALIAS_QR_FAILED'].includes(status) && (
+            <Button
+              onClick={() =>
+                run('Alias/QR registration', () =>
+                  status === 'ALIAS_QR_FAILED' ? retryAliasQr(token, id) : registerAliasQr(token, id),
+                )
+              }
+            >
+              {status === 'ALIAS_QR_FAILED' ? 'Retry Alias / QR' : 'Register Alias / QR'}
+            </Button>
+          )}
+
+          {/* ── Configure settlement ── */}
+          {canWrite && status === 'ALIAS_QR_REGISTERED' && (
+            <Button onClick={onGoToSettlement}>Configure Settlement</Button>
+          )}
+
+          {/* ── Settlement approval ── */}
+          {canApprove && status === 'SETTLEMENT_APPROVAL_PENDING' && (
+            <Button
+              onClick={() =>
+                setConfirmAction({
+                  label: 'Settlement approved',
+                  description: `Approves the settlement terms for ${app.merchant.tradingName}.`,
+                  fn: (comment) => approveSettlement(token, id, comment),
+                })
+              }
+            >
+              Approve Settlement
+            </Button>
+          )}
+
+          {/* ── Activate ── */}
+          {canApprove && ['READY_FOR_ACTIVATION', 'SETTLEMENT_APPROVED'].includes(status) && (
+            <Button
+              onClick={() =>
+                setConfirmAction({
+                  label: `Activate ${entity}`,
+                  description: `This activates ${app.merchant.tradingName}'s live TANQR account. The ${entity.toLowerCase()} will immediately be able to accept payments. Continue?`,
+                  fn: () => activateOnboarding(token, id),
+                })
+              }
+            >
+              Activate {entity}
+            </Button>
+          )}
+
+          {/* ── View live merchant ── */}
+          {status === 'ACTIVE' && app.merchantId && (
+            <Link href={`/merchants/${app.merchantId}`}>
+              <Button>View {entity} Profile</Button>
+            </Link>
+          )}
+
+          {/* ── Reject / send back ── */}
+          {canReject && !['ACTIVE', 'REJECTED', 'DRAFT'].includes(status) && (
+            <>
+              {['SUBMITTED', 'UNDER_REVIEW', 'PENDING_KYC_APPROVAL'].includes(status) && (
+                <Button variant="outline" onClick={() => setRejectKind('sendBack')}>
+                  Send Back
+                </Button>
+              )}
+              {['PENDING_KYC_APPROVAL', 'UNDER_REVIEW'].includes(status) && (
+                <Button variant="outline" onClick={() => setRejectKind('rejectKyc')}>
+                  Reject KYC
+                </Button>
+              )}
+              <Button variant="destructive" onClick={() => setRejectKind('reject')}>
+                Reject
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Reject / send-back modal ── */}
+      <RejectModal
+        open={rejectKind !== null}
+        title={
+          rejectKind === 'sendBack'
+            ? 'Send Back to Applicant'
+            : rejectKind === 'rejectKyc'
+            ? 'Reject KYC Documents'
+            : 'Reject Application'
+        }
+        description={
+          rejectKind === 'sendBack'
+            ? 'Explain what needs to be corrected before the applicant can resubmit.'
+            : rejectKind === 'rejectKyc'
+            ? 'Select a reason code and describe the KYC issue.'
+            : 'This permanently rejects the application. The applicant will be notified with your reason.'
+        }
+        reasonCodes={rejectKind !== 'sendBack' ? ONBOARDING_REJECTION_CODES : undefined}
+        remarksLabel={rejectKind === 'sendBack' ? 'Instructions for applicant' : 'Remarks'}
+        onClose={() => setRejectKind(null)}
+        onConfirm={handleRejectConfirm}
+        loading={modalLoading}
+      />
+
+      {/* ── Approve confirmation modal ── */}
+      <ConfirmModal
+        open={confirmAction !== null}
+        title={confirmAction?.label ?? ''}
+        description={confirmAction?.description ?? ''}
+        confirmLabel={confirmAction?.label ?? 'Confirm'}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={handleConfirmAction}
+        loading={modalLoading}
+      />
+    </>
   );
 }

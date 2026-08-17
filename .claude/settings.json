@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /c/laragon/www/mms/mms-frontend/ 2>/dev/null | head -30)",
+      "Read(//c/laragon/www/mms/mms-frontend//**)",
+      "Bash(git remote *)",
+      "Bash(git fetch *)",
+      "Bash(git checkout *)",
+      "Bash(ls /c/laragon/www/)",
+      "Read(//c/c/laragon/www/**)",
+      "Bash(git clone *)",
+      "Bash(ls /c/laragon/www/mms/mms-frontend-temp/)",
+      "Read(//c/laragon/www/mms/mms-frontend-temp//**)",
+      "Bash(cp -r /c/laragon/www/mms/mms-frontend-temp/.git /c/laragon/www/mms/mms-frontend/)",
+      "Bash(rsync -a --exclude='.git' /c/laragon/www/mms/mms-frontend-temp/ /c/laragon/www/mms/mms-frontend/)",
+      "Bash(cp -r /c/laragon/www/mms/mms-frontend-temp/. /c/laragon/www/mms/mms-frontend/)",
+      "Bash(ls /c/laragon/www/mms/mms-frontend/.git/ 2>/dev/null && echo \"git exists\" || echo \"no git\")",
+      "Read(//c/laragon/www/mms/mms-frontend/.git//**)",
+      "Bash(rm -rf /c/laragon/www/mms/mms-frontend-temp && echo \"cleaned up\")",
+      "Bash(git status *)"
+    ],
+    "additionalDirectories": [
+      "C:\\laragon\\www\\mms\\mms-frontend-temp"
+    ]
+  }
+}
