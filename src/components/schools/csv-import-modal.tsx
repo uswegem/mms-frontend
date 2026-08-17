@@ -42,6 +42,7 @@ export function CsvImportModal({
   const [confirmResult, setConfirmResult] = useState<BatchConfirmResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [consentAttested, setConsentAttested] = useState(false);
 
   // Only submit valid non-duplicate rows on confirm
   const validRows: PreviewRow[] = preview
@@ -64,11 +65,11 @@ export function CsvImportModal({
   }
 
   async function handleConfirm() {
-    if (!preview || validRows.length === 0) return;
+    if (!preview || validRows.length === 0 || !consentAttested) return;
     setStep('confirming');
     setError(null);
     try {
-      const result = await bulkConfirmStudents(token, merchantId, validRows);
+      const result = await bulkConfirmStudents(token, merchantId, validRows, consentAttested);
       setConfirmResult(result);
       setStep('done');
       onSuccess(result);
@@ -95,6 +96,7 @@ export function CsvImportModal({
     setPreview(null);
     setConfirmResult(null);
     setError(null);
+    setConsentAttested(false);
     if (fileRef.current) fileRef.current.value = '';
   }
 
@@ -125,8 +127,10 @@ export function CsvImportModal({
               <p className="text-sm text-muted-foreground">
                 Upload a CSV file with columns:{' '}
                 <span className="font-mono text-xs">
-                  Admission, FirstName, Surname, ParentEmail (optional), MobileNumber (optional)
+                  Admission, FirstName, Surname, ParentEmail (optional), MobileNumber (required)
                 </span>
+                . MobileNumber is the guardian&apos;s number and is where each student&apos;s Lipa
+                Namba notification is sent — rows without it will be rejected.
               </p>
               <div
                 className="flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border py-10 cursor-pointer hover:border-primary/60 transition-colors"
@@ -252,6 +256,25 @@ export function CsvImportModal({
                 </Table>
               </div>
 
+              {/* Parental/guardian consent attestation — brief §4.3.2. This is a
+                  school-level attestation, not per-student consent capture: MMS
+                  isn't expected to verify each parent's consent individually,
+                  only that the school has affirmatively confirmed the lawful
+                  basis exists. */}
+              <label className="flex items-start gap-2.5 rounded-md border border-border bg-muted/30 p-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={consentAttested}
+                  onChange={(e) => setConsentAttested(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0"
+                />
+                <span>
+                  The school confirms parental/guardian consent, or an equivalent lawful basis
+                  under the Personal Data Protection Act 2022, has been obtained for the students
+                  in this roster.
+                </span>
+              </label>
+
               {error && (
                 <p className="flex items-center gap-1.5 text-sm text-destructive">
                   <AlertCircle className="h-4 w-4 shrink-0" />
@@ -269,7 +292,8 @@ export function CsvImportModal({
                   </Button>
                   <Button
                     onClick={() => void handleConfirm()}
-                    disabled={validRows.length === 0}
+                    disabled={validRows.length === 0 || !consentAttested}
+                    title={!consentAttested ? 'Confirm the consent attestation above first' : undefined}
                   >
                     Import {validRows.length} student{validRows.length !== 1 ? 's' : ''}
                   </Button>

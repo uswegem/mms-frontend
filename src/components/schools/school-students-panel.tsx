@@ -263,7 +263,7 @@ export function SchoolStudentsPanel({ merchantId }: SchoolStudentsPanelProps) {
       const result = await createStudent(accessToken, merchantId, {
         admissionNo,
         fullName,
-        guardianPhone: guardianPhone || undefined,
+        guardianPhone,
         parentEmail: parentEmail || undefined,
       });
       setFormMsg(
@@ -343,6 +343,7 @@ export function SchoolStudentsPanel({ merchantId }: SchoolStudentsPanelProps) {
                   value={guardianPhone}
                   onChange={(e) => setGuardianPhone(e.target.value)}
                   placeholder="255712345678"
+                  required
                 />
               </div>
               <div className="space-y-2">

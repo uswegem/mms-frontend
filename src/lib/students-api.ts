@@ -69,7 +69,7 @@ export async function createStudent(
   body: {
     admissionNo: string;
     fullName: string;
-    guardianPhone?: string;
+    guardianPhone: string;
     parentEmail?: string;
   },
 ): Promise<{ student: Student; alias: StudentAlias }> {
@@ -110,6 +110,7 @@ export async function bulkConfirmStudents(
   token: string,
   merchantId: string,
   rows: PreviewRow[],
+  parentalConsentAttested: boolean,
 ): Promise<BatchConfirmResult> {
   const res = await fetch(`${API_BASE}/schools/${merchantId}/students/bulk`, {
     method: 'POST',
@@ -117,7 +118,7 @@ export async function bulkConfirmStudents(
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ rows }),
+    body: JSON.stringify({ rows, parentalConsentAttested }),
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
