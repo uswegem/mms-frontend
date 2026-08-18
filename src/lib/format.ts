@@ -9,11 +9,13 @@ export function formatCurrency(
   if (compact && amount >= 1_000) {
     return `${currency} ${(amount / 1_000).toFixed(1)}K`;
   }
-  return new Intl.NumberFormat('en-TZ', {
-    style: 'currency',
-    currency,
+  // Intl's currency style renders TZS as the locale symbol "TSh", not the
+  // literal "TZS" the design handoff's screens use throughout — spell it
+  // out explicitly rather than let the symbol drift from the spec.
+  const formatted = new Intl.NumberFormat('en-TZ', {
     maximumFractionDigits: 0,
   }).format(amount);
+  return `${currency} ${formatted}`;
 }
 
 export function formatNumber(n: number, compact = false): string {
