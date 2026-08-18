@@ -2,16 +2,6 @@
 
 import { useRef, useState } from 'react';
 import { AlertCircle, CheckCircle2, Download, Upload, X } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   bulkConfirmStudents,
   bulkPreviewStudents,
@@ -107,40 +97,40 @@ export function CsvImportModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-3xl rounded-xl border border-border bg-background shadow-xl">
+      <div className="relative w-full max-w-3xl rounded-[14px] border border-border-default bg-surface shadow-lg">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h2 className="text-base font-semibold">Import Students from CSV</h2>
+        <div className="flex items-center justify-between border-b border-border-hairline px-6 py-4">
+          <h2 className="text-[15px] font-semibold text-text-primary">Import Students from CSV</h2>
           <button
             onClick={onClose}
-            className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="rounded-[8px] p-1 text-text-muted transition-colors hover:bg-subtle hover:text-text-primary"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="px-6 py-5 space-y-5">
+        <div className="space-y-5 px-6 py-5">
           {/* Step: Upload */}
           {step === 'upload' && (
             <>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-[13px] text-text-secondary">
                 Upload a CSV file with columns:{' '}
-                <span className="font-mono text-xs">
+                <span className="font-mono text-[12px] text-text-muted">
                   Admission, FirstName, Surname, ParentEmail (optional), MobileNumber (required)
                 </span>
                 . MobileNumber is the guardian&apos;s number and is where each student&apos;s Lipa
                 Namba notification is sent — rows without it will be rejected.
               </p>
               <div
-                className="flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border py-10 cursor-pointer hover:border-primary/60 transition-colors"
+                className="dropzone flex cursor-pointer flex-col items-center justify-center gap-3 rounded-[12px] border-2 border-dashed border-border-input py-10"
                 onClick={() => fileRef.current?.click()}
               >
-                <Upload className="h-8 w-8 text-muted-foreground" />
+                <Upload className="h-7 w-7 text-text-muted" />
                 {file ? (
-                  <span className="text-sm font-medium">{file.name}</span>
+                  <span className="text-[13.5px] font-medium text-text-primary">{file.name}</span>
                 ) : (
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-[13.5px] text-text-muted">
                     Click to select a CSV file
                   </span>
                 )}
@@ -153,28 +143,33 @@ export function CsvImportModal({
                 />
               </div>
               {error && (
-                <p className="flex items-center gap-1.5 text-sm text-destructive">
+                <p className="flex items-center gap-1.5 text-[13px] text-danger-text">
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   {error}
                 </p>
               )}
               <div className="flex justify-between gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1.5 text-xs text-muted-foreground"
+                <button
                   onClick={downloadTemplate}
+                  className="flex items-center gap-1.5 text-[12.5px] text-text-muted transition-colors hover:text-text-body"
                 >
                   <Download className="h-3 w-3" />
                   Download template
-                </Button>
+                </button>
                 <div className="flex gap-2">
-                  <Button variant="ghost" onClick={onClose}>
+                  <button
+                    onClick={onClose}
+                    className="rounded-[9px] px-4 py-[9px] text-[13px] text-text-body transition-colors hover:bg-subtle"
+                  >
                     Cancel
-                  </Button>
-                  <Button onClick={() => void handlePreview()} disabled={!file || loading}>
+                  </button>
+                  <button
+                    onClick={() => void handlePreview()}
+                    disabled={!file || loading}
+                    className="rounded-[9px] bg-button-primary px-4 py-[9px] text-[13px] font-medium text-white transition-colors hover:bg-button-primary-hover disabled:cursor-not-allowed disabled:opacity-40"
+                  >
                     {loading ? 'Parsing…' : 'Preview'}
-                  </Button>
+                  </button>
                 </div>
               </div>
             </>
@@ -184,76 +179,74 @@ export function CsvImportModal({
           {step === 'preview' && preview && (
             <>
               {/* Summary pills */}
-              <div className="flex flex-wrap gap-2 text-sm">
-                <span className="rounded-full bg-muted px-3 py-0.5 font-medium">
+              <div className="flex flex-wrap gap-2 text-[12.5px]">
+                <span className="rounded-[20px] bg-muted px-3 py-1 font-medium text-text-body">
                   {preview.total} rows total
                 </span>
-                <span className="rounded-full bg-green-100 px-3 py-0.5 font-medium text-green-800 dark:bg-green-950 dark:text-green-300">
+                <span className="rounded-[20px] bg-success-bg px-3 py-1 font-medium text-success-text">
                   {preview.valid} valid
                 </span>
                 {preview.invalid > 0 && (
-                  <span className="rounded-full bg-red-100 px-3 py-0.5 font-medium text-red-800 dark:bg-red-950 dark:text-red-300">
+                  <span className="rounded-[20px] bg-danger-bg px-3 py-1 font-medium text-danger-text">
                     {preview.invalid} invalid
                   </span>
                 )}
               </div>
 
               {/* Preview table */}
-              <div className="max-h-80 overflow-y-auto overflow-x-auto rounded-md border border-border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">#</TableHead>
-                      <TableHead>Admission</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {preview.rows.map((r) => (
-                      <TableRow
+              <div className="max-h-80 overflow-y-auto overflow-x-auto rounded-[12px] border border-border-default">
+                <table className="w-full text-[13px]">
+                  <thead className="sticky top-0 bg-surface">
+                    <tr className="border-b border-border-hairline text-[12px] font-medium text-text-muted">
+                      <th className="w-12 px-3 py-2.5 text-left font-medium">#</th>
+                      <th className="px-2 py-2.5 text-left font-medium">Admission</th>
+                      <th className="px-2 py-2.5 text-left font-medium">Name</th>
+                      <th className="px-2 py-2.5 text-left font-medium">Phone</th>
+                      <th className="px-2 py-2.5 text-left font-medium">Email</th>
+                      <th className="px-3 py-2.5 text-left font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {preview.rows.map((r, i) => (
+                      <tr
                         key={r.row}
-                        className={
-                          !r.valid || r.isDuplicate ? 'bg-red-50 dark:bg-red-950/20' : undefined
-                        }
+                        className={`${i < preview.rows.length - 1 ? 'border-b border-border-row' : ''} ${
+                          !r.valid || r.isDuplicate ? 'bg-danger-bg/40' : ''
+                        }`}
                       >
-                        <TableCell className="text-muted-foreground text-xs">
-                          {r.row}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
+                        <td className="px-3 py-2 text-[12px] text-text-muted">{r.row}</td>
+                        <td className="px-2 py-2 font-mono text-[12px] text-text-body">
                           {r.admissionNo}
-                        </TableCell>
-                        <TableCell className="text-sm">{r.fullName}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
+                        </td>
+                        <td className="px-2 py-2 text-text-body">{r.fullName}</td>
+                        <td className="px-2 py-2 text-[12px] text-text-muted">
                           {r.guardianPhone ?? '—'}
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
+                        </td>
+                        <td className="px-2 py-2 text-[12px] text-text-muted">
                           {r.parentEmail ?? '—'}
-                        </TableCell>
-                        <TableCell>
+                        </td>
+                        <td className="px-3 py-2">
                           {r.isDuplicate ? (
-                            <Badge variant="danger" className="text-[10px]">
+                            <span className="rounded-[20px] bg-danger-bg px-2 py-0.5 text-[10.5px] font-medium text-danger-text">
                               Duplicate
-                            </Badge>
+                            </span>
                           ) : r.valid ? (
-                            <Badge variant="success" className="text-[10px]">
+                            <span className="rounded-[20px] bg-success-bg px-2 py-0.5 text-[10.5px] font-medium text-success-text">
                               OK
-                            </Badge>
+                            </span>
                           ) : (
                             <span
-                              className="text-[10px] text-destructive"
+                              className="text-[10.5px] text-danger-text"
                               title={r.errors.join('; ')}
                             >
                               {r.errors[0]}
                             </span>
                           )}
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                      </tr>
                     ))}
-                  </TableBody>
-                </Table>
+                  </tbody>
+                </table>
               </div>
 
               {/* Parental/guardian consent attestation — brief §4.3.2. This is a
@@ -261,14 +254,14 @@ export function CsvImportModal({
                   isn't expected to verify each parent's consent individually,
                   only that the school has affirmatively confirmed the lawful
                   basis exists. */}
-              <label className="flex items-start gap-2.5 rounded-md border border-border bg-muted/30 p-3 text-sm">
+              <label className="flex items-start gap-2.5 rounded-[12px] border border-border-default bg-subtle p-3 text-[13px]">
                 <input
                   type="checkbox"
                   checked={consentAttested}
                   onChange={(e) => setConsentAttested(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 shrink-0"
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-accent"
                 />
-                <span>
+                <span className="text-text-body">
                   The school confirms parental/guardian consent, or an equivalent lawful basis
                   under the Personal Data Protection Act 2022, has been obtained for the students
                   in this roster.
@@ -276,27 +269,34 @@ export function CsvImportModal({
               </label>
 
               {error && (
-                <p className="flex items-center gap-1.5 text-sm text-destructive">
+                <p className="flex items-center gap-1.5 text-[13px] text-danger-text">
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   {error}
                 </p>
               )}
 
               <div className="flex justify-between gap-2">
-                <Button variant="ghost" onClick={reset}>
+                <button
+                  onClick={reset}
+                  className="rounded-[9px] px-4 py-[9px] text-[13px] text-text-body transition-colors hover:bg-subtle"
+                >
                   Back
-                </Button>
+                </button>
                 <div className="flex gap-2">
-                  <Button variant="ghost" onClick={onClose}>
+                  <button
+                    onClick={onClose}
+                    className="rounded-[9px] px-4 py-[9px] text-[13px] text-text-body transition-colors hover:bg-subtle"
+                  >
                     Cancel
-                  </Button>
-                  <Button
+                  </button>
+                  <button
                     onClick={() => void handleConfirm()}
                     disabled={validRows.length === 0 || !consentAttested}
                     title={!consentAttested ? 'Confirm the consent attestation above first' : undefined}
+                    className="rounded-[9px] bg-button-primary px-4 py-[9px] text-[13px] font-medium text-white transition-colors hover:bg-button-primary-hover disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Import {validRows.length} student{validRows.length !== 1 ? 's' : ''}
-                  </Button>
+                  </button>
                 </div>
               </div>
             </>
@@ -305,8 +305,8 @@ export function CsvImportModal({
           {/* Step: Confirming */}
           {step === 'confirming' && (
             <div className="flex flex-col items-center gap-4 py-10">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
-              <p className="text-sm text-muted-foreground">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-track border-t-button-primary" />
+              <p className="text-[13px] text-text-muted">
                 Importing students and queuing alias generation…
               </p>
             </div>
@@ -315,20 +315,27 @@ export function CsvImportModal({
           {/* Step: Done */}
           {step === 'done' && confirmResult && (
             <div className="flex flex-col items-center gap-4 py-8 text-center">
-              <CheckCircle2 className="h-10 w-10 text-green-500" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success-strong text-white">
+                <CheckCircle2 className="h-6 w-6" />
+              </div>
               <div>
-                <p className="font-semibold">Import queued successfully</p>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="font-semibold text-text-primary">Import queued successfully</p>
+                <p className="mt-1 text-[13px] text-text-muted">
                   {confirmResult.queued} student{confirmResult.queued !== 1 ? 's' : ''} queued for
                   alias generation.{' '}
                   {confirmResult.skipped > 0 &&
                     `${confirmResult.skipped} skipped (already active).`}
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-[12px] text-text-muted">
                   Batch ID: <span className="font-mono">{confirmResult.batchId}</span>
                 </p>
               </div>
-              <Button onClick={onClose}>Done</Button>
+              <button
+                onClick={onClose}
+                className="rounded-[9px] bg-button-primary px-5 py-[9px] text-[13px] font-medium text-white transition-colors hover:bg-button-primary-hover"
+              >
+                Done
+              </button>
             </div>
           )}
         </div>
