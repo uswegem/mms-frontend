@@ -90,10 +90,44 @@ export interface OnboardingApplication {
     remarks?: string | null;
   } | null;
   steps: { stepCode: string; completedAt: string | null }[];
+  beneficialOwners?: Array<{
+    id: string;
+    fullName: string;
+    ownershipPct?: string | null;
+    nidaVerifications: VerificationAttempt[];
+  }>;
+  traVerifications?: Array<VerificationAttempt & { tin: string }>;
   rejectionCode: string | null;
   rejectionNotes?: string | null;
   createdAt: string;
   activatedAt?: string | null;
+}
+
+/** Brief §4.3 — one row per NIDA/TRA verification attempt (append-only). */
+export interface VerificationAttempt {
+  id: string;
+  result: 'MATCH' | 'MISMATCH' | 'NOT_FOUND' | 'PROVIDER_ERROR';
+  verifiedName?: string | null;
+  failureReason?: string | null;
+  verifiedAt: string;
+}
+
+/**
+ * Thrown by the shared `request()` helper. Carries the backend's
+ * ProblemDetails `code`/`extra` fields (e.g. NIDA/TRA `result` + `source`)
+ * so callers can render a specific outcome, not just a message string.
+ */
+export class OnboardingApiError extends Error {
+  code?: string;
+  result?: string;
+  source?: string;
+  constructor(message: string, opts?: { code?: string; result?: string; source?: string }) {
+    super(message);
+    this.name = 'OnboardingApiError';
+    this.code = opts?.code;
+    this.result = opts?.result;
+    this.source = opts?.source;
+  }
 }
 
 async function request<T>(
@@ -112,7 +146,10 @@ async function request<T>(
   });
   if (!res.ok) {
     const problem = await res.json().catch(() => ({}));
-    throw new Error(problem.detail ?? problem.title ?? problem.message ?? `Request failed (${res.status})`);
+    throw new OnboardingApiError(
+      problem.detail ?? problem.title ?? problem.message ?? `Request failed (${res.status})`,
+      { code: problem.code, result: problem.result, source: problem.source },
+    );
   }
   return res.json();
 }
@@ -190,6 +227,37 @@ export function deleteOnboardingDocument(token: string, id: string, documentId: 
     `/merchant-onboarding/${id}/kyc/documents/${documentId}`,
     token,
     { method: 'DELETE' },
+  );
+}
+
+/** Brief §4.3 Step 2 — register a beneficial owner ahead of NIDA verification. */
+export function addBeneficialOwner(
+  token: string,
+  id: string,
+  body: { fullName: string; idNumber: string; ownershipPct?: number },
+) {
+  return request<{ id: string; fullName: string }>(
+    `/onboarding/applications/${id}/beneficial-owners`,
+    token,
+    { method: 'POST', body: JSON.stringify(body) },
+  );
+}
+
+/** Brief §4.3 Step 2 — verify a beneficial owner's national ID against NIDA. */
+export function verifyBeneficialOwnerNida(token: string, id: string, ownerId: string) {
+  return request<VerificationAttempt>(
+    `/onboarding/applications/${id}/beneficial-owners/${ownerId}/verify-nida`,
+    token,
+    { method: 'POST' },
+  );
+}
+
+/** Brief §4.3 Step 3 — verify the application's TIN against TRA. */
+export function verifyTin(token: string, id: string) {
+  return request<VerificationAttempt & { tin: string }>(
+    `/onboarding/applications/${id}/verify-tin`,
+    token,
+    { method: 'POST' },
   );
 }
 
