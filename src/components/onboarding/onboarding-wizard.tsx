@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, ReactNode, useState } from 'react';
+import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -17,9 +17,11 @@ import {
 import { useAuth } from '@/providers/auth-provider';
 import { cn } from '@/lib/utils';
 import {
+  acceptFeeSchedule,
   addBeneficialOwner,
   assignSettlementAccount,
   createOnboardingApplication,
+  getApplicationFeeSchedule,
   OnboardingApiError,
   submitOnboarding,
   updateOnboardingApplication,
@@ -27,6 +29,8 @@ import {
   verifyBeneficialOwnerNida,
   verifySettlement,
   verifyTin,
+  type ApplicationFeeSchedule,
+  type FeeScheduleCharge,
   type OnboardingApplication,
   type VerificationAttempt,
 } from '@/lib/onboarding-api';
@@ -41,7 +45,8 @@ const STEP_META = [
   { n: '3', label: 'TIN / TRA' },
   { n: '4', label: 'Documents' },
   { n: '5', label: 'Settlement' },
-  { n: '6', label: 'Review' },
+  { n: '6', label: 'Fees' },
+  { n: '7', label: 'Review' },
 ] as const;
 
 const NEXT_STEPS_TIMELINE = [
@@ -56,6 +61,43 @@ function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function chargeTypeLabel(t: FeeScheduleCharge['chargeType']): string {
+  switch (t) {
+    case 'MDR':
+      return 'MDR — merchant discount rate';
+    case 'SETTLEMENT_TRANSFER':
+      return 'Settlement transfer';
+    case 'QR_POSTER_REPRINT':
+      return 'QR poster reprint';
+    case 'DISPUTE_INVESTIGATION':
+      return 'Dispute investigation';
+  }
+}
+
+function basisLabel(b: FeeScheduleCharge['basis']): string {
+  switch (b) {
+    case 'PERCENT_OF_TRANSACTION':
+      return '% of transaction';
+    case 'FLAT_PER_SWEEP':
+      return 'Per sweep';
+    case 'FLAT_PER_ASSET':
+      return 'Per asset';
+    case 'FLAT_PER_CASE':
+      return 'Per case, if merchant at fault';
+  }
+}
+
+function chargeRateLabel(c: FeeScheduleCharge): string {
+  if (c.basis === 'PERCENT_OF_TRANSACTION') {
+    return c.rate ? `${(Number(c.rate) * 100).toFixed(2)}%` : '—';
+  }
+  return `TZS ${new Intl.NumberFormat('en-TZ').format(Number(c.flatAmount ?? 0))}`;
+}
+
+function chargeCapLabel(c: FeeScheduleCharge): string {
+  return c.capAmount ? `TZS ${new Intl.NumberFormat('en-TZ').format(Number(c.capAmount))}` : '—';
 }
 
 /** Human label for a failed/negative verification outcome. */
@@ -440,6 +482,13 @@ export function OnboardingWizard() {
   const [settlementVerifying, setSettlementVerifying] = useState(false);
   const [settlementError, setSettlementError] = useState<string | null>(null);
 
+  // Step 6 — Fee disclosure
+  const [feeScheduleData, setFeeScheduleData] = useState<ApplicationFeeSchedule | null>(null);
+  const [feeAccepting, setFeeAccepting] = useState(false);
+  const [feeError, setFeeError] = useState<string | null>(null);
+  const feeScheduleFetchingRef = useRef(false);
+  const feeScheduleLoading = step === 6 && !feeScheduleData && !feeError;
+
   const { regions, districts, wards, getPostcode } = useTanzaniaLocations(
     form.region || undefined,
     form.district || undefined,
@@ -607,6 +656,33 @@ export function OnboardingWizard() {
     }
   }
 
+  // Loads the resolved fee schedule the first time the applicant reaches
+  // Step 6 — a real API call, not a fabricated table (handoff §ob7).
+  useEffect(() => {
+    if (step !== 6 || !applicationId || feeScheduleData || feeScheduleFetchingRef.current) return;
+    feeScheduleFetchingRef.current = true;
+    getApplicationFeeSchedule(token, applicationId)
+      .then(setFeeScheduleData)
+      .catch((err) => setFeeError(err instanceof Error ? err.message : 'Failed to load fee schedule'))
+      .finally(() => {
+        feeScheduleFetchingRef.current = false;
+      });
+  }, [step, applicationId, feeScheduleData, token]);
+
+  async function handleAcceptFees() {
+    if (!applicationId) return;
+    setFeeAccepting(true);
+    setFeeError(null);
+    try {
+      const result = await acceptFeeSchedule(token, applicationId);
+      setFeeScheduleData((prev) => (prev ? { ...prev, accepted: true, acceptedAt: result.acceptedAt } : prev));
+    } catch (err) {
+      setFeeError(err instanceof Error ? err.message : 'Failed to accept fee schedule');
+    } finally {
+      setFeeAccepting(false);
+    }
+  }
+
   async function handleNext(e: FormEvent) {
     e.preventDefault();
     setError(null);
@@ -650,7 +726,7 @@ export function OnboardingWizard() {
           bankCode: form.bankCode,
         });
       }
-      if (step === 6) {
+      if (step === 7) {
         setSubmitting(true);
         const id = await ensureApplication();
         const app = await submitOnboarding(token, id);
@@ -725,7 +801,7 @@ export function OnboardingWizard() {
             </button>
           </Link>
           <div className="flex flex-col gap-1">
-            <p className="eyebrow text-text-muted">Merchant onboarding · Steps 0–6</p>
+            <p className="eyebrow text-text-muted">Merchant onboarding · Steps 0–7</p>
             <h1 className="text-[22px] font-semibold tracking-tight text-text-primary">{STEP_META[step].label}</h1>
           </div>
         </div>
@@ -1339,7 +1415,7 @@ export function OnboardingWizard() {
                   disabled={!settlementValid}
                   className="rounded-[10px] bg-button-primary px-5 py-[11px] text-[13.5px] font-medium text-white hover:bg-button-primary-hover disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  Continue to business profile
+                  Continue to fee disclosure
                 </button>
               </div>
             </div>
@@ -1358,6 +1434,108 @@ export function OnboardingWizard() {
         )}
 
         {step === 6 && (
+          <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr] lg:items-start">
+            <div className="flex flex-col gap-4 rounded-[14px] border border-border-default bg-surface p-[22px]">
+              <div className="flex items-end justify-between gap-3">
+                <p className="text-[15px] font-semibold text-text-primary">Fee schedule — disclosure &amp; acceptance</p>
+                {feeScheduleData && (
+                  <p className="font-mono text-[11.5px] text-text-muted">
+                    SCHEDULE v{feeScheduleData.schedule.version}
+                    {feeScheduleData.schedule.effectiveFrom &&
+                      ` · effective ${new Date(feeScheduleData.schedule.effectiveFrom).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`}
+                  </p>
+                )}
+              </div>
+
+              {feeScheduleLoading && <p className="text-[13px] text-text-muted">Loading the applicable fee schedule…</p>}
+              {feeError && <p className="text-[13px] text-danger-text">{feeError}</p>}
+
+              {feeScheduleData && (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-[13px]">
+                      <thead>
+                        <tr className="border-b border-border-hairline text-left text-text-muted">
+                          <th className="py-[9px] text-[12px] font-medium">Charge</th>
+                          <th className="py-[9px] text-[12px] font-medium">Basis</th>
+                          <th className="py-[9px] text-right text-[12px] font-medium">Rate</th>
+                          <th className="py-[9px] text-right text-[12px] font-medium">Cap</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {feeScheduleData.schedule.charges.map((charge) => (
+                          <tr key={charge.id} className="border-b border-border-row">
+                            <td className="py-[11px] text-text-primary">{chargeTypeLabel(charge.chargeType)}</td>
+                            <td className="py-[11px] text-text-body">{basisLabel(charge.basis)}</td>
+                            <td className="py-[11px] text-right font-mono tabular-nums text-text-primary">
+                              {chargeRateLabel(charge)}
+                            </td>
+                            <td className="py-[11px] text-right font-mono tabular-nums text-text-muted">
+                              {chargeCapLabel(charge)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={feeScheduleData.accepted || feeAccepting}
+                    onClick={() => void handleAcceptFees()}
+                    className={cn(
+                      'flex items-start gap-3 rounded-[12px] border p-4 text-left transition-colors',
+                      feeScheduleData.accepted
+                        ? 'border-accent-border bg-subtle'
+                        : 'cursor-pointer border-border-default bg-subtle hover:border-[#c9c9c3]',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border-2 text-[11px] text-white',
+                        feeScheduleData.accepted ? 'border-accent bg-accent' : 'border-border-input bg-surface',
+                      )}
+                    >
+                      {feeScheduleData.accepted ? '✓' : feeAccepting ? <Loader2 className="h-3 w-3 animate-spin text-text-muted" /> : ''}
+                    </span>
+                    <span className="text-[13px] leading-[1.5] text-text-body">
+                      {feeScheduleData.accepted
+                        ? `Accepted — schedule v${feeScheduleData.schedule.version} understood. Charges on settlement statements reference this schedule version at transaction time.`
+                        : `I accept schedule v${feeScheduleData.schedule.version} and understand that charges shown on settlement statements will reference the schedule version in force at transaction time.`}
+                    </span>
+                  </button>
+                </>
+              )}
+
+              <button
+                type="submit"
+                disabled={!feeScheduleData?.accepted}
+                className="self-start rounded-[10px] bg-button-primary px-5 py-[11px] text-[13.5px] font-medium text-white hover:bg-button-primary-hover disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Continue to review
+              </button>
+            </div>
+            <div className="flex flex-col gap-2.5 rounded-[14px] border border-border-default bg-surface p-5">
+              <p className="text-[13px] font-semibold text-text-primary">Where the schedule comes from</p>
+              <p className="text-[12.5px] leading-[1.55] text-text-body">
+                MDR and transaction fees are configured per merchant category, per segment, or as an individual
+                merchant override in system configuration. This applicant inherits the{' '}
+                {feeScheduleData?.schedule.scope === 'MCC'
+                  ? `MCC ${feeScheduleData.schedule.scopeKey}`
+                  : feeScheduleData?.schedule.scope === 'MERCHANT'
+                    ? 'merchant-specific override'
+                    : 'platform default'}{' '}
+                schedule.
+              </p>
+              <p className="border-t border-border-hairline pt-3 text-[12px] leading-[1.5] text-text-muted">
+                Versioning of the schedule and disclosure at onboarding are enhancements beyond the BRS baseline,
+                which requires only that fees be configurable.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {step === 7 && (
           <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr] lg:items-start">
             <div className="flex flex-col gap-4">
               <div className="rounded-[14px] border border-border-default bg-surface p-5">
@@ -1382,6 +1560,15 @@ export function OnboardingWizard() {
                     done={settlementVerified}
                     title="Settlement account"
                     detail={settlementVerified ? 'CBS-validated' : 'Assigned · not yet CBS-validated'}
+                  />
+                  <ChecklistRow
+                    done={!!feeScheduleData?.accepted}
+                    title="Fee schedule accepted"
+                    detail={
+                      feeScheduleData?.accepted
+                        ? `Schedule v${feeScheduleData.schedule.version} acknowledged`
+                        : 'Pending'
+                    }
                     last
                   />
                 </div>

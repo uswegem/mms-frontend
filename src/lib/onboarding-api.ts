@@ -278,6 +278,44 @@ export function verifySettlement(token: string, id: string) {
   });
 }
 
+/** Brief §4.3 Step 7 — fee schedule / MDR configuration. Decimal fields arrive as strings. */
+export interface FeeScheduleCharge {
+  id: string;
+  chargeType: 'MDR' | 'SETTLEMENT_TRANSFER' | 'QR_POSTER_REPRINT' | 'DISPUTE_INVESTIGATION';
+  basis: 'PERCENT_OF_TRANSACTION' | 'FLAT_PER_SWEEP' | 'FLAT_PER_ASSET' | 'FLAT_PER_CASE';
+  rate: string | null;
+  flatAmount: string | null;
+  capAmount: string | null;
+}
+
+export interface FeeSchedule {
+  id: string;
+  version: number;
+  scope: 'DEFAULT' | 'MCC' | 'MERCHANT';
+  scopeKey: string | null;
+  status: string;
+  effectiveFrom: string | null;
+  charges: FeeScheduleCharge[];
+}
+
+export interface ApplicationFeeSchedule {
+  schedule: FeeSchedule;
+  accepted: boolean;
+  acceptedAt: string | null;
+}
+
+export function getApplicationFeeSchedule(token: string, id: string) {
+  return request<ApplicationFeeSchedule>(`/onboarding/applications/${id}/fee-schedule`, token);
+}
+
+export function acceptFeeSchedule(token: string, id: string) {
+  return request<{ scheduleId: string; version: number; acceptedAt: string }>(
+    `/onboarding/applications/${id}/accept-fee-schedule`,
+    token,
+    { method: 'POST' },
+  );
+}
+
 export function submitOnboarding(token: string, id: string) {
   return request<OnboardingApplication>(`/onboarding/applications/${id}/submit`, token, {
     method: 'POST',
