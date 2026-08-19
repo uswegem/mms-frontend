@@ -1,5 +1,6 @@
 import {
   Activity,
+  AlertTriangle,
   BarChart3,
   Bell,
   Building2,
@@ -69,6 +70,13 @@ export const NAV_SECTIONS: NavSection[] = [
         href: '/approvals',
         icon: Shield,
         permission: 'approval:task:read',
+      },
+      {
+        id: 'disputes',
+        label: 'Disputes & Refunds',
+        href: '/disputes',
+        icon: AlertTriangle,
+        permission: 'dispute:read',
       },
     ],
   },
@@ -209,6 +217,7 @@ export function getBreadcrumbs(pathname: string): { label: string; href?: string
     '/merchants': 'Merchant Management',
     '/onboarding': 'Merchant Onboarding',
     '/approvals': 'Checker Inbox',
+    '/disputes': 'Disputes & Refunds',
     '/qr': 'QR Management',
     '/transactions': 'Transactions',
     '/settlements': 'Settlements',
@@ -227,6 +236,12 @@ export function getBreadcrumbs(pathname: string): { label: string; href?: string
   if (pathname.startsWith('/merchants/') && pathname !== '/merchants') {
     crumbs.push({ label: 'Merchant Management', href: '/merchants' });
     crumbs.push({ label: 'Merchant Details' });
+    return crumbs;
+  }
+
+  if (pathname.startsWith('/disputes/') && pathname !== '/disputes') {
+    crumbs.push({ label: 'Disputes & Refunds', href: '/disputes' });
+    crumbs.push({ label: 'Dispute Detail' });
     return crumbs;
   }
 

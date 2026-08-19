@@ -9,6 +9,8 @@ import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { approveTask, listApprovalTasks, rejectTask, type ApprovalTask } from '@/lib/approvals-api';
 import { getMerchant } from '@/lib/merchants-api';
 import { formatOnboardingStep, getOnboardingApplication } from '@/lib/onboarding-api';
+import { DISPUTE_STAGE_LABELS, getDispute } from '@/lib/disputes-api';
+import { formatCurrency } from '@/lib/format';
 
 type ActivityFilter = 'ALL' | string;
 
@@ -272,6 +274,7 @@ function ApprovalTaskRow({
 
   const isMerchantStatusChange = task.entityType === 'MERCHANT_STATUS_CHANGE';
   const isOnboarding = ['MERCHANT_ONBOARDING', 'SCHOOL_ONBOARDING'].includes(task.entityType);
+  const isDisputeRefund = task.entityType === 'DISPUTE_REFUND';
   const isMaker = task.makerId === currentUserId;
 
   const merchantQuery = useQuery({
@@ -284,13 +287,21 @@ function ApprovalTaskRow({
     queryFn: () => getOnboardingApplication(token, task.entityId),
     enabled: isOnboarding,
   });
+  const disputeQuery = useQuery({
+    queryKey: ['approval-task-dispute', task.entityId],
+    queryFn: () => getDispute(token, task.entityId),
+    enabled: isDisputeRefund,
+  });
 
   const merchant = merchantQuery.data;
   const onboardingApp = onboardingQuery.data;
+  const dispute = disputeQuery.data;
 
   const viewHref = isMerchantStatusChange
     ? `/merchants/${task.entityId}`
-    : `/onboarding/${task.entityId}`;
+    : isDisputeRefund
+      ? `/disputes/${task.entityId}`
+      : `/onboarding/${task.entityId}`;
 
   const entityCell =
     isMerchantStatusChange && merchant ? (
@@ -309,6 +320,11 @@ function ApprovalTaskRow({
         <span className="font-medium text-text-primary">{onboardingApp.merchant.tradingName}</span>
         <span className="text-text-muted"> · {onboardingApp.applicationNo}</span>
       </span>
+    ) : isDisputeRefund && dispute ? (
+      <span>
+        <span className="font-mono text-[12px] text-text-muted">{dispute.caseNo}</span>
+        <span className="text-text-muted"> · {formatCurrency(Number(dispute.disputedAmount), dispute.currency)}</span>
+      </span>
     ) : (
       <span className="font-mono text-text-muted">{task.entityId.slice(0, 8)}…</span>
     );
@@ -318,6 +334,8 @@ function ApprovalTaskRow({
       <span>{merchant.pendingStatusAction.replace(/_/g, ' ')}</span>
     ) : isOnboarding && onboardingApp ? (
       <span>{formatOnboardingStep(onboardingApp.currentStep ?? onboardingApp.status)}</span>
+    ) : isDisputeRefund && dispute ? (
+      <span>{DISPUTE_STAGE_LABELS[dispute.stage]}</span>
     ) : (
       <span className="text-text-muted">—</span>
     );
@@ -325,6 +343,7 @@ function ApprovalTaskRow({
   const entityName =
     (isMerchantStatusChange && merchant?.tradingName) ||
     (isOnboarding && onboardingApp?.merchant.tradingName) ||
+    (isDisputeRefund && dispute?.caseNo) ||
     task.entityId.slice(0, 8);
 
   async function handleRejectConfirm(params: { remarks: string }) {

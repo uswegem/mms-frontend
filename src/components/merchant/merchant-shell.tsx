@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { LayoutDashboard, LogOut, Receipt, Wallet, Zap } from 'lucide-react';
+import { AlertTriangle, LayoutDashboard, LogOut, Receipt, Wallet, Zap } from 'lucide-react';
 import { useRequireAuth } from '@/hooks/use-require-auth';
 import { cn } from '@/lib/utils';
 import { isMerchantScopedRoles } from '@/lib/permissions';
@@ -16,6 +16,7 @@ const NAV = [
   { href: '/merchant/till', label: 'Take a payment', icon: Zap },
   { href: '/merchant/transactions', label: 'Transactions', icon: Receipt },
   { href: '/merchant/settlements', label: 'Settlement', icon: Wallet },
+  { href: '/merchant/disputes', label: 'Disputes', icon: AlertTriangle },
 ];
 
 /**
