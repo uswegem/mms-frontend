@@ -56,3 +56,28 @@ export function rejectTask(token: string, taskId: string, notes?: string) {
     body: JSON.stringify({ notes }),
   });
 }
+
+/** Handoff §cfgmc — only entity types with a real maker-checker gate wired into a workflow. */
+export type ApprovalEntityType = 'MERCHANT_ONBOARDING' | 'SCHOOL_ONBOARDING' | 'MERCHANT_STATUS_CHANGE';
+
+export interface ApprovalPolicy {
+  entityType: ApprovalEntityType;
+  enabled: boolean;
+  slaHours: number;
+  updatedAt: string | null;
+}
+
+export function listApprovalPolicies(token: string) {
+  return request<ApprovalPolicy[]>('/approvals/policies', token);
+}
+
+export function updateApprovalPolicy(
+  token: string,
+  entityType: ApprovalEntityType,
+  body: { enabled: boolean; slaHours: number },
+) {
+  return request<ApprovalPolicy>(`/approvals/policies/${entityType}`, token, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}
