@@ -482,9 +482,15 @@ export async function uploadOnboardingKycFile(
 
 export const ONBOARDING_WIZARD_STEPS = [
   { code: 'ENTITY_PROFILE', label: 'Merchant Profile' },
+  { code: 'NIDA_VERIFICATION', label: 'NIDA Verification' },
+  { code: 'TRA_VERIFICATION', label: 'TIN / TRA Verification' },
   { code: 'KYC_DOCUMENTS', label: 'KYC Documents' },
+  { code: 'BENEFICIAL_OWNERS', label: 'Beneficial Owners' },
   { code: 'SETTLEMENT_ACCOUNT', label: 'Bank Account' },
+  { code: 'FEE_SCHEDULE_DISCLOSURE', label: 'Fee Disclosure' },
+  { code: 'AML_SCREENING', label: 'AML Screening' },
   { code: 'RISK_REVIEW', label: 'Risk Review' },
+  { code: 'BANK_VALIDATION', label: 'Bank Validation' },
   { code: 'TPS_REGISTRATION', label: 'TIPS Registration' },
   { code: 'ALIAS_QR_SETUP', label: 'Store / Alias / QR' },
   { code: 'SETTLEMENT_CONFIG', label: 'Settlement Config' },
