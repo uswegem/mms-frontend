@@ -7,6 +7,7 @@ import { listTransactions, type Payment } from '@/lib/transactions-api';
 import { listSettlements } from '@/lib/settlements-api';
 import { getMerchant } from '@/lib/merchants-api';
 import { getMerchantAlias } from '@/lib/alias-api';
+import { getKycUpgradeStatus } from '@/lib/kyc-upgrade-api';
 import { formatCurrency, formatDateTime } from '@/lib/format';
 
 function initials(email?: string): string {
@@ -58,6 +59,12 @@ export default function MerchantDashboardPage() {
     enabled: Boolean(accessToken),
   });
 
+  const { data: kycStatus } = useQuery({
+    queryKey: ['merchant-dashboard-kyc-upgrade'],
+    queryFn: () => getKycUpgradeStatus(accessToken!),
+    enabled: Boolean(accessToken),
+  });
+
   const todayPayments = recent?.items.filter((p) => p.status === 'SUCCESS') ?? [];
   const collectedToday = todayPayments.reduce((sum, p) => sum + Number(p.amount), 0);
   const avgTicket = todayPayments.length ? collectedToday / todayPayments.length : 0;
@@ -92,6 +99,18 @@ export default function MerchantDashboardPage() {
 
       {/* Body — 22px 34px 34px, 18px gap */}
       <div className="flex flex-col gap-[18px] px-[34px] pb-[34px] pt-[22px]">
+        {kycStatus?.breached && (
+          <Link
+            href="/merchant/kyc-upgrade"
+            className="flex items-center justify-between rounded-[14px] border border-warning-border bg-warning-bg px-5 py-3.5 transition-colors hover:border-[#dfae70]"
+          >
+            <span className="text-[13px] text-warning-text">
+              <span className="font-semibold">Full KYC required to keep selling</span> — you have
+              crossed the threshold for the lighter online-seller tier
+            </span>
+            <span className="text-[12.5px] font-medium text-warning-text">Start upgrade →</span>
+          </Link>
+        )}
         {/* KPI row — 4 equal columns, 14px gap */}
         <div className="grid grid-cols-4 gap-[14px]">
           <div className="rounded-[14px] border border-border-default bg-surface p-[18px]">

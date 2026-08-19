@@ -10,6 +10,7 @@ import { approveTask, listApprovalTasks, rejectTask, type ApprovalTask } from '@
 import { getMerchant } from '@/lib/merchants-api';
 import { formatOnboardingStep, getOnboardingApplication } from '@/lib/onboarding-api';
 import { DISPUTE_STAGE_LABELS, getDispute } from '@/lib/disputes-api';
+import { getKycUpgradeRequest } from '@/lib/kyc-upgrade-api';
 import { formatCurrency } from '@/lib/format';
 
 type ActivityFilter = 'ALL' | string;
@@ -275,6 +276,7 @@ function ApprovalTaskRow({
   const isMerchantStatusChange = task.entityType === 'MERCHANT_STATUS_CHANGE';
   const isOnboarding = ['MERCHANT_ONBOARDING', 'SCHOOL_ONBOARDING'].includes(task.entityType);
   const isDisputeRefund = task.entityType === 'DISPUTE_REFUND';
+  const isKycUpgrade = task.entityType === 'KYC_TIER_UPGRADE';
   const isMaker = task.makerId === currentUserId;
 
   const merchantQuery = useQuery({
@@ -292,16 +294,30 @@ function ApprovalTaskRow({
     queryFn: () => getDispute(token, task.entityId),
     enabled: isDisputeRefund,
   });
+  const kycUpgradeQuery = useQuery({
+    queryKey: ['approval-task-kyc-upgrade', task.entityId],
+    queryFn: () => getKycUpgradeRequest(token, task.entityId),
+    enabled: isKycUpgrade,
+  });
+  const kycUpgradeMerchantQuery = useQuery({
+    queryKey: ['approval-task-kyc-upgrade-merchant', kycUpgradeQuery.data?.merchantId],
+    queryFn: () => getMerchant(token, kycUpgradeQuery.data!.merchantId),
+    enabled: isKycUpgrade && !!kycUpgradeQuery.data,
+  });
 
   const merchant = merchantQuery.data;
   const onboardingApp = onboardingQuery.data;
   const dispute = disputeQuery.data;
+  const kycUpgrade = kycUpgradeQuery.data;
+  const kycUpgradeMerchant = kycUpgradeMerchantQuery.data;
 
   const viewHref = isMerchantStatusChange
     ? `/merchants/${task.entityId}`
     : isDisputeRefund
       ? `/disputes/${task.entityId}`
-      : `/onboarding/${task.entityId}`;
+      : isKycUpgrade
+        ? `/merchants/${kycUpgrade?.merchantId ?? ''}`
+        : `/onboarding/${task.entityId}`;
 
   const entityCell =
     isMerchantStatusChange && merchant ? (
@@ -325,6 +341,16 @@ function ApprovalTaskRow({
         <span className="font-mono text-[12px] text-text-muted">{dispute.caseNo}</span>
         <span className="text-text-muted"> · {formatCurrency(Number(dispute.disputedAmount), dispute.currency)}</span>
       </span>
+    ) : isKycUpgrade && kycUpgrade ? (
+      <span>
+        <span className="font-medium text-text-primary">
+          {kycUpgradeMerchant?.tradingName ?? kycUpgrade.merchantId.slice(0, 8)}
+        </span>
+        <span className="text-text-muted">
+          {' '}
+          — {kycUpgrade.fromTier.replace('_', ' ')} → {kycUpgrade.toTier.replace('_', ' ')}
+        </span>
+      </span>
     ) : (
       <span className="font-mono text-text-muted">{task.entityId.slice(0, 8)}…</span>
     );
@@ -336,6 +362,11 @@ function ApprovalTaskRow({
       <span>{formatOnboardingStep(onboardingApp.currentStep ?? onboardingApp.status)}</span>
     ) : isDisputeRefund && dispute ? (
       <span>{DISPUTE_STAGE_LABELS[dispute.stage]}</span>
+    ) : isKycUpgrade && kycUpgrade ? (
+      <span>
+        TIN {kycUpgrade.tinVerificationResult === 'MATCH' ? 'verified' : 'pending'} ·{' '}
+        {kycUpgrade.documents.length} doc{kycUpgrade.documents.length === 1 ? '' : 's'}
+      </span>
     ) : (
       <span className="text-text-muted">—</span>
     );
@@ -344,6 +375,7 @@ function ApprovalTaskRow({
     (isMerchantStatusChange && merchant?.tradingName) ||
     (isOnboarding && onboardingApp?.merchant.tradingName) ||
     (isDisputeRefund && dispute?.caseNo) ||
+    (isKycUpgrade && (kycUpgradeMerchant?.tradingName ?? kycUpgrade?.merchantId)) ||
     task.entityId.slice(0, 8);
 
   async function handleRejectConfirm(params: { remarks: string }) {
