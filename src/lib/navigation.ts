@@ -78,6 +78,13 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: AlertTriangle,
         permission: 'dispute:read',
       },
+      {
+        id: 'reconciliation',
+        label: 'Reconciliation',
+        href: '/reconciliation',
+        icon: Scale,
+        permission: 'reconciliation:read',
+      },
     ],
   },
   {
@@ -138,14 +145,6 @@ export const NAV_SECTIONS: NavSection[] = [
         label: 'Settlements',
         href: '/settlements',
         icon: Wallet,
-        permission: 'merchant:read',
-        badge: 'Soon',
-      },
-      {
-        id: 'reconciliation',
-        label: 'Reconciliation',
-        href: '/reconciliation',
-        icon: Scale,
         permission: 'merchant:read',
         badge: 'Soon',
       },
@@ -242,6 +241,12 @@ export function getBreadcrumbs(pathname: string): { label: string; href?: string
   if (pathname.startsWith('/disputes/') && pathname !== '/disputes') {
     crumbs.push({ label: 'Disputes & Refunds', href: '/disputes' });
     crumbs.push({ label: 'Dispute Detail' });
+    return crumbs;
+  }
+
+  if (pathname.startsWith('/reconciliation/') && pathname !== '/reconciliation') {
+    crumbs.push({ label: 'Reconciliation', href: '/reconciliation' });
+    crumbs.push({ label: 'Exception Detail' });
     return crumbs;
   }
 

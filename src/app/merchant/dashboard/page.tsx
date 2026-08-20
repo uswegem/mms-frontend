@@ -8,6 +8,7 @@ import { listSettlements } from '@/lib/settlements-api';
 import { getMerchant } from '@/lib/merchants-api';
 import { getMerchantAlias } from '@/lib/alias-api';
 import { getKycUpgradeStatus } from '@/lib/kyc-upgrade-api';
+import { listReconciliationExceptions } from '@/lib/reconciliation-api';
 import { formatCurrency, formatDateTime } from '@/lib/format';
 
 function initials(email?: string): string {
@@ -58,6 +59,13 @@ export default function MerchantDashboardPage() {
     queryFn: () => listSettlements(accessToken!, { status: 'SWEPT', pageSize: 50 }),
     enabled: Boolean(accessToken),
   });
+
+  const { data: reconciliation } = useQuery({
+    queryKey: ['merchant-dashboard-reconciliation'],
+    queryFn: () => listReconciliationExceptions(accessToken!, { status: 'OPEN', pageSize: 50 }),
+    enabled: Boolean(accessToken),
+  });
+  const openExceptions = reconciliation?.items ?? [];
 
   const { data: kycStatus } = useQuery({
     queryKey: ['merchant-dashboard-kyc-upgrade'],
@@ -138,18 +146,30 @@ export default function MerchantDashboardPage() {
             </p>
             <p className="mt-1 text-[12px] text-text-muted">Sweep T+1 · 02:00</p>
           </div>
-          {/* Exceptions: no reconciliation:read permission exists yet for
-              merchant-scoped roles, so this can't call a real endpoint
-              today — shown as an honest placeholder, not a fabricated
-              number. Flagged separately; needs a merchant-facing
-              reconciliation read permission before this is wireable. */}
-          <div className="rounded-[14px] border border-warning-border bg-warning-bg p-[18px]">
-            <p className="text-[12.5px] text-text-muted">Exceptions</p>
-            <p className="mt-[10px] text-[28px] font-semibold tracking-[-0.02em] text-warning-text">
-              —
+          <Link
+            href="/merchant/reconciliation"
+            className={
+              openExceptions.length > 0
+                ? 'block rounded-[14px] border border-warning-border bg-warning-bg p-[18px] transition-colors hover:border-[#dfae70]'
+                : 'block rounded-[14px] border border-border-default bg-surface p-[18px] transition-colors hover:border-[#c9c9c3]'
+            }
+          >
+            <p className={openExceptions.length > 0 ? 'text-[12.5px] text-warning-text' : 'text-[12.5px] text-text-muted'}>
+              Exceptions
             </p>
-            <p className="mt-1 text-[12px] text-text-muted">Not yet available · review →</p>
-          </div>
+            <p
+              className={
+                openExceptions.length > 0
+                  ? 'mt-[10px] text-[28px] font-semibold tracking-[-0.02em] tabular-nums text-warning-text'
+                  : 'mt-[10px] text-[28px] font-semibold tracking-[-0.02em] tabular-nums text-text-primary'
+              }
+            >
+              {openExceptions.length}
+            </p>
+            <p className={openExceptions.length > 0 ? 'mt-1 text-[12px] text-warning-text' : 'mt-1 text-[12px] text-text-muted'}>
+              {openExceptions.length > 0 ? 'Review →' : 'None open'}
+            </p>
+          </Link>
         </div>
 
         {/* Two-column row — 1.55fr 1fr, 14px gap */}

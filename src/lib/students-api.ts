@@ -23,6 +23,7 @@ export interface Student {
   isActive: boolean;
   status: StudentStatus;
   studentAlias: StudentAlias | null;
+  createdAt: string;
 }
 
 export interface PreviewRow {

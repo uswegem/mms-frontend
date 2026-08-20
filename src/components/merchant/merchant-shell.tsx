@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { AlertTriangle, LayoutDashboard, Link2, LogOut, QrCode, Receipt, Wallet, Zap } from 'lucide-react';
+import { AlertTriangle, GraduationCap, LayoutDashboard, Link2, LogOut, QrCode, Receipt, Scale, Wallet, Zap } from 'lucide-react';
 import { useRequireAuth } from '@/hooks/use-require-auth';
 import { cn } from '@/lib/utils';
 import { isMerchantScopedRoles } from '@/lib/permissions';
@@ -19,6 +19,8 @@ const NAV = [
   { href: '/merchant/qr', label: 'QR Codes', icon: QrCode },
   { href: '/merchant/links', label: 'Payment Links', icon: Link2 },
   { href: '/merchant/disputes', label: 'Disputes', icon: AlertTriangle },
+  { href: '/merchant/reconciliation', label: 'Reconciliation', icon: Scale },
+  { href: '/merchant/school-dashboard', label: 'School Overview', icon: GraduationCap },
 ];
 
 /**
